@@ -4,6 +4,7 @@ import { assert } from "../../utils/index.js"
 import { getFramebufferAttachment, getWebGLTextureFormat, mapWebGLAttachmentToBufferBit } from "../../function.js"
 import { WebGLExtensions } from "../extensions.js"
 import { WebGLRenderPipeline } from "./renderpipeline.js"
+import { WebGLRenderPassEncoder } from "./renderpassencoder.js"
 import { GPUBuffer, GPUTexture } from "../resources/index.js"
 import { allocateTexture2D, allocateCubemap, allocateTexture2DArray, updateTexture2D, updateCubeMap, updateTexture2DArray, createProgramFromSrc } from "./utils.js"
 import { CompareFunction } from "../constants.js"
@@ -80,6 +81,14 @@ export class WebGLRenderDevice {
       depthWrite: descriptor.depthWrite ?? true
     })
   }
+
+  /**
+   * @param {any} [_descriptor]
+   */
+  beginRenderPass(_descriptor) {
+    return new WebGLRenderPassEncoder(this.context)
+  }
+
   /**
    * @param {WebGLBufferDescriptor} descriptor 
    * @returns {GPUBuffer}

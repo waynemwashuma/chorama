@@ -34,44 +34,6 @@ export class WebGLRenderPipeline {
   /**
    * @param {WebGL2RenderingContext} gl
    */
-  use(gl) {
-    gl.useProgram(this.program);
-
-    // culling
-    if (this.cullMode) {
-      gl.enable(gl.CULL_FACE);
-      gl.cullFace(this.cullMode);
-    } else {
-      gl.disable(gl.CULL_FACE);
-    }
-
-    // depth
-    gl.depthFunc(this.depthCompare)
-    gl.depthMask(this.depthWrite);
-
-    // blending
-    // NOTE: webgl does not have ability to blend differently on 
-    // different render targets since state is global.
-    const target = this.targets[0]
-    if (target && target.blend) {
-      const { color, alpha } = target.blend
-
-      gl.enable(gl.BLEND)
-      gl.blendEquationSeparate(color.operation, alpha.operation)
-      gl.blendFuncSeparate(
-        color.source,
-        color.destination,
-        alpha.source,
-        alpha.destination
-      )
-    } else {
-      gl.disable(gl.BLEND);
-    }
-  }
-
-  /**
-   * @param {WebGL2RenderingContext} gl
-   */
   dispose(gl) {
     gl.deleteProgram(this.program)
   }
