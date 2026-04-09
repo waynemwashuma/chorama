@@ -25,6 +25,7 @@ function renderItems(view, device, renderer) {
     return
   }
 
+  const pass = device.beginRenderPass()
   for (let i = 0; i < opaquePhase.length; i++) {
     // SAFETY: List is dense
     const { pipelineId, tag, mesh, uniforms, transform } = /**@type {RenderItem}*/(opaquePhase[i])
@@ -38,7 +39,7 @@ function renderItems(view, device, renderer) {
     const modelInfo = pipeline.uniforms.get("model")
     const transformMatrix = Affine3.toMatrix4(transform)
 
-    pipeline.use(context)
+    pass.setPipeline(pipeline)
 
     if (modelInfo) {
       context.uniformMatrix4fv(modelInfo.location, false, new Float32Array(transformMatrix))
@@ -47,14 +48,9 @@ function renderItems(view, device, renderer) {
     if (uniformBinder) {
       uniformBinder(device, renderer, pipeline, uniforms, transformMatrix)
     }
-
-    context.bindVertexArray(mesh.inner)
-    if (mesh.indexType !== undefined) {
-      context.drawElements(pipeline.topology, mesh.count, mesh.indexType, 0)
-    } else {
-      context.drawArrays(pipeline.topology, 0, mesh.count)
-    }
+    pass.draw(mesh)
   }
+  pass.end()
 }
 
 export class OpaquePassNode {

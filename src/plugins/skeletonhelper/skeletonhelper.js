@@ -34,8 +34,8 @@ export class SkeletonHelperPlugin extends Plugin {
     const modelInfo = pipeline.uniforms.get("model")
     const parentInfo = pipeline.uniforms.get("parent_index")
     const childInfo = pipeline.uniforms.get("child_index")
-
-    pipeline.use(device.context)
+    const pass = device.beginRenderPass()
+    pass.setPipeline(pipeline)
 
     if (
       !transformsInfo || transformsInfo.texture_unit === undefined ||
@@ -70,6 +70,7 @@ export class SkeletonHelperPlugin extends Plugin {
       }
       return true
     })
+    pass.end()
   }
 
   /**
