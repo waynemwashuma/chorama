@@ -1,5 +1,4 @@
-/** @import { WebGLRenderer } from "../renderer.js" */
-import { GPUMesh, WebGLRenderDevice, WebGLRenderPipeline } from "../../core/index.js"
+import { GPUMesh } from "../../core/index.js"
 import { Affine3, Matrix4, Vector3 } from "../../math/index.js"
 import { Object3D } from "../../objects/index.js"
 import { RenderTarget } from "../../rendertarget/index.js"
@@ -74,56 +73,6 @@ export class View {
     this.viewMatrix = view
     this.viewPosition = position
     this.object = object
-  }
-
-  /**
-   * @param {WebGLRenderDevice} device
-   * @param {WebGLRenderer} renderer
-   * @param {Map<string, UniformBinder>} uniformBinders
-   */
-  renderItems(device, renderer, uniformBinders) {
-    const { renderStage: renderPhases, renderTarget } = this
-    const { clearColor, clearDepth, clearStencil, viewport, scissor } = renderTarget
-    const framebuffer = renderer.caches.getFrameBuffer(device, renderTarget)
-    const opaquePhase = renderPhases.opaque
-
-    framebuffer.setViewport(device.context, viewport, scissor || viewport)
-    framebuffer.clear(device.context, clearColor, clearDepth, clearStencil)
-
-    if(opaquePhase){
-      for (let i = 0; i < opaquePhase.length; i++) {
-        const { pipelineId, tag, mesh, uniforms, transform } = /**@type {RenderItem} */(opaquePhase[i])
-        const uniformBinder = uniformBinders.get(tag)
-        const pipeline = renderer.caches.getRenderPipeline(pipelineId)
-        
-        if (!pipeline) {
-          continue
-        }
-        
-        const modelInfo = pipeline.uniforms.get("model")
-        const transformMatrix = Affine3.toMatrix4(transform)
-        
-        pipeline.use(device.context)
-        
-        if (modelInfo) {
-          device.context.uniformMatrix4fv(modelInfo.location, false, new Float32Array([...transformMatrix]))
-        }
-        
-        if (uniformBinder) {
-          uniformBinder(device, renderer, pipeline, uniforms, transformMatrix)
-        }
-        device.context.bindVertexArray(mesh.inner)
-        if (mesh.indexType !== undefined) {
-          device.context.drawElements(pipeline.topology,
-            mesh.count,
-            mesh.indexType,
-            0
-          )
-        } else {
-          device.context.drawArrays(pipeline.topology, 0, mesh.count)
-        }
-      }
-    }
   }
 
   getData() {
