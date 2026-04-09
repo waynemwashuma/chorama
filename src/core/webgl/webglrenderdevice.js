@@ -1,8 +1,9 @@
-/**@import { WebGLBufferDescriptor, WebGLRenderPipelineDescriptor, WebGLTextureDescriptor, WebGLWriteTextureDescriptor } from './descriptors.js' */
+/**@import { WebGLBindGroupDescriptor, WebGLBindGroupLayoutDescriptor, WebGLBufferDescriptor, WebGLRenderPipelineDescriptor, WebGLTextureDescriptor, WebGLWriteTextureDescriptor } from './descriptors.js' */
 import { CullFace, FrontFaceDirection, TextureFormat, TextureType, getTextureFormatSize } from "../../constants/index.js"
 import { assert } from "../../utils/index.js"
 import { getFramebufferAttachment, getWebGLTextureFormat, mapWebGLAttachmentToBufferBit } from "../../function.js"
 import { WebGLExtensions } from "../extensions.js"
+import { WebGLBindGroup, WebGLBindGroupLayout } from "./bindgroup.js"
 import { WebGLRenderPipeline } from "./renderpipeline.js"
 import { WebGLRenderPassEncoder } from "./renderpassencoder.js"
 import { GPUBuffer, GPUTexture } from "../resources/index.js"
@@ -80,6 +81,20 @@ export class WebGLRenderDevice {
       depthCompare: descriptor.depthCompare ?? CompareFunction.Less,
       depthWrite: descriptor.depthWrite ?? true
     })
+  }
+
+  /**
+   * @param {WebGLBindGroupLayoutDescriptor} descriptor
+   */
+  createBindGroupLayout(descriptor) {
+    return new WebGLBindGroupLayout(descriptor)
+  }
+
+  /**
+   * @param {WebGLBindGroupDescriptor} descriptor
+   */
+  createBindGroup(descriptor) {
+    return new WebGLBindGroup(descriptor)
   }
 
   /**

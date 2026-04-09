@@ -12,6 +12,11 @@ export class WebGLRenderPassEncoder {
    * @type {import("./renderpipeline.js").WebGLRenderPipeline | undefined}
    */
   pipeline
+  /**
+   * @private
+   * @type {Map<number, any>}
+   */
+  bindGroups = new Map()
 
   /**
    * @param {WebGL2RenderingContext} context
@@ -62,10 +67,12 @@ export class WebGLRenderPassEncoder {
 
   /**
    * Makeshift bind-group entry point for future expansion.
-   * @param {number} _index
-   * @param {any} _bindGroup
+   * @param {number} index
+   * @param {any} bindGroup
    */
-  setBindGroup(_index, _bindGroup) { }
+  setBindGroup(index, bindGroup) {
+    this.bindGroups.set(index, bindGroup)
+  }
 
   /**
    * @param {GPUMesh} mesh
@@ -83,6 +90,7 @@ export class WebGLRenderPassEncoder {
 
   end() {
     this.pipeline = undefined
+    this.bindGroups.clear()
     this.context.bindVertexArray(null)
   }
 }
