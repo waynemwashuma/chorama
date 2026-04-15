@@ -8,6 +8,10 @@ import { assert } from "../../../utils/index.js"
 import { SkyboxPipeline, SkyBoxMesh } from "../resources/index.js"
 
 export class SkyBoxNode {
+  subgraph() {
+    return undefined
+  }
+
   /**
    * @param {import("../../../renderer/graph/index.js").RenderGraphContext} context
    */

@@ -4,6 +4,10 @@ import { Vector3 } from "../../../math/index.js"
 import { assert } from "../../../utils/index.js"
 
 export class CameraViewNode {
+  subgraph() {
+    return undefined
+  }
+
   /**
    * @param {import("../../../renderer/graph/index.js").RenderGraphContext} context
    */

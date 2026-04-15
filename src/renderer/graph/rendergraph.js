@@ -4,6 +4,7 @@ import { assert } from "../../utils/index.js"
 /**
  * @typedef RenderGraphNode
  * @property {(context: RenderGraphContext) => void} execute
+ * @property {() => RenderGraph | undefined} subgraph
  */
 
 /**

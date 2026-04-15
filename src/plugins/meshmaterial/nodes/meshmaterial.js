@@ -5,6 +5,10 @@ import { MeshMaterialPipelines } from "../resources/index.js"
 import { createMeshMaterialRenderItem } from "../meshmaterial.js"
 
 export class MeshMaterialNode {
+  subgraph() {
+    return undefined
+  }
+
   /**
    * @param {import("../../../renderer/graph/index.js").RenderGraphContext} context
    */

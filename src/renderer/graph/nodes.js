@@ -3,6 +3,10 @@ import { assert } from "../../utils/index.js"
 import { Views } from "../views.js"
 
 export class SortViewsNode {
+  subgraph() {
+    return undefined
+  }
+
   /**
    * @param {RenderGraphContext} context
    */

@@ -54,6 +54,10 @@ function renderItems(view, device, renderer) {
 }
 
 export class OpaquePassNode {
+  subgraph() {
+    return undefined
+  }
+
   /**
    * @param {import("../../../renderer/graph/index.js").RenderGraphContext} context
    */

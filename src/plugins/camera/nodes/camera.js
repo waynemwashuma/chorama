@@ -18,4 +18,8 @@ export class CameraNode {
   execute(context) {
     this.graph.execute(context)
   }
+
+  subgraph() {
+    return this.graph
+  }
 }

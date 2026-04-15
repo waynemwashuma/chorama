@@ -3,6 +3,10 @@ import { AmbientLight, PointLight, SpotLight,DirectionalLight } from "../../../l
 import { ShadowMap } from "../../shadow/index.js"
 
 export class LightNode {
+  subgraph() {
+    return undefined
+  }
+
   /**
    * @param {import("../../../renderer/graph/index.js").RenderGraphContext} context
    */

@@ -9,6 +9,10 @@ import { basicVertex } from "../../../shader/index.js"
 import { ShadowPipelines } from "../resources"
 
 export class ShadowOccluderNode {
+    subgraph() {
+        return undefined
+    }
+
     /**
      * @param {import("../../../renderer/graph/index.js").RenderGraphContext} context
      */

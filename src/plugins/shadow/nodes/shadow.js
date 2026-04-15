@@ -8,6 +8,10 @@ import { assert } from "../../../utils"
 const SHADOW_ITEM_BYTE_SIZE = 96
 
 export class ShadowViewNode {
+    subgraph() {
+      return undefined
+    }
+
     /**
      * @param {import("src/renderer").RenderGraphContext} graphcontext
      */

@@ -48,6 +48,10 @@ function renderItems(view, device, renderer) {
 }
 
 export class ShadowOpaquePassNode {
+  subgraph() {
+    return undefined
+  }
+
   /**
    * @param {import("../../../renderer/graph/index.js").RenderGraphContext} context
    */
