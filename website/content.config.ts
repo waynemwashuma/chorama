@@ -26,8 +26,12 @@ async function collectExampleFiles(dir: string, root: string): Promise<string[]>
 
   for (const dirEntry of dirEntries) {
     const fullPath = path.join(dir, dirEntry.name);
+    const relativePath = path.relative(root, fullPath).split(path.sep).join("/");
 
     if (dirEntry.isDirectory()) {
+      if (relativePath === "addons" || relativePath.startsWith("addons/")) {
+        continue;
+      }
       files.push(...(await collectExampleFiles(fullPath, root)));
       continue;
     }

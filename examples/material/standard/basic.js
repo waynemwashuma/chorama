@@ -1,4 +1,5 @@
 import { GUI } from "dat.gui"
+import { addRenderGraphGuiAddon } from "@examples/rendergraph_gui"
 import {
   MeshMaterial3D,
   DirectionalLight,
@@ -157,3 +158,7 @@ buildOptionsFolder
     )
   })
 buildOptionsFolder.open()
+addRenderGraphGuiAddon({
+  gui: controls,
+  renderer
+})

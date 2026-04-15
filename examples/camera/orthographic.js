@@ -1,4 +1,5 @@
 import { GUI } from "dat.gui"
+import { addRenderGraphGuiAddon } from "@examples/rendergraph_gui"
 import {
   MeshMaterial3D,
   WebGLRenderer,
@@ -113,3 +114,7 @@ cameraFolder
 cameraFolder
   .add(camera, 'far', 5, 20)
 cameraFolder.open()
+addRenderGraphGuiAddon({
+  gui: controls,
+  renderer
+})

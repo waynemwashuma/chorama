@@ -1,4 +1,5 @@
 import { GUI } from 'dat.gui';
+import { addRenderGraphGuiAddon } from "@examples/rendergraph_gui"
 import Stats from "stats.js";
 import {
   MeshMaterial3D,
@@ -149,3 +150,7 @@ const optFolder = controls.addFolder('Settings')
 
 optFolder.add(material,'layer',0, 5, 1).name('Layer')
 optFolder.open()
+addRenderGraphGuiAddon({
+  gui: controls,
+  renderer
+})

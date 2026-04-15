@@ -1,4 +1,5 @@
 import { GUI } from "dat.gui"
+import { addRenderGraphGuiAddon } from "@examples/rendergraph_gui"
 import {
   MeshMaterial3D,
   BasicMaterial,
@@ -130,3 +131,7 @@ function updateRenderTargets(value) {
     renderTarget2.scissor.size.set(1 - value, 1)
   }
 }
+addRenderGraphGuiAddon({
+  gui: controls,
+  renderer
+})

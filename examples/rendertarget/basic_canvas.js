@@ -17,6 +17,7 @@ import {
   CameraPlugin
 } from "webgllis"
 import { GUI } from "dat.gui";
+import { addRenderGraphGuiAddon } from "@examples/rendergraph_gui";
 
 const canvas = document.createElement('canvas')
 const renderDevice = new WebGLRenderDevice(canvas,{
@@ -121,3 +122,9 @@ canvasopts.add(settings, "enableScissors").onChange((value) => {
   }
 })
 canvasopts.open()
+
+addRenderGraphGuiAddon({
+  gui: controls,
+  renderer,
+  position: { x: 24, y: 24 }
+})

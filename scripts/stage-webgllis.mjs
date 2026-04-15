@@ -6,6 +6,8 @@ const sourceMap = resolve('dist/index.module.js.map');
 const targetDir = resolve('dist/website/vendor/webgllis');
 const targetModule = resolve(targetDir, 'index.module.js');
 const targetMap = resolve(targetDir, 'index.module.js.map');
+const sourceAddonsDir = resolve('examples/addons');
+const targetAddonsDir = resolve('dist/website/examples/addons');
 
 if (!existsSync(sourceModule)) {
   console.error('Missing dist/index.module.js. Run "npm run build-src" first.');
@@ -19,4 +21,9 @@ if (existsSync(sourceMap)) {
   cpSync(sourceMap, targetMap);
 }
 
-console.log('Staged webgllis module to dist/website/vendor/webgllis/');
+if (existsSync(sourceAddonsDir)) {
+  mkdirSync(targetAddonsDir, { recursive: true });
+  cpSync(sourceAddonsDir, targetAddonsDir, { recursive: true });
+}
+
+console.log('Staged webgllis module and example addons into dist/website/.');

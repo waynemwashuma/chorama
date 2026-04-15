@@ -31,6 +31,7 @@ import {
   CameraPlugin
 } from "webgllis"
 import { GUI } from "dat.gui"
+import { addRenderGraphGuiAddon } from "@examples/rendergraph_gui"
 
 const canvas = document.createElement('canvas')
 const renderTarget = new CanvasTarget(canvas)
@@ -389,3 +390,8 @@ function changeMaterial(value) {
       break;
   }
 }
+
+addRenderGraphGuiAddon({
+  gui: controls,
+  renderer
+})

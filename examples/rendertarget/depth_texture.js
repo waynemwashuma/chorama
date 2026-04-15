@@ -1,4 +1,5 @@
 import { GUI } from "dat.gui"
+import { addRenderGraphGuiAddon } from "@examples/rendergraph_gui"
 import Stats from "stats.js";
 import {
   MeshMaterial3D,
@@ -123,3 +124,7 @@ buildOptionsFolder
   .name("Camera Far")
   .onChange((value)=>depthMaterial.far = value)
 buildOptionsFolder.open()
+addRenderGraphGuiAddon({
+  gui: controls,
+  renderer
+})

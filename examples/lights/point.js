@@ -28,6 +28,7 @@ import {
   CameraPlugin
 } from "webgllis"
 import { GUI } from "dat.gui"
+import { addRenderGraphGuiAddon } from "@examples/rendergraph_gui"
 
 const canvas = document.createElement('canvas')
 const renderTarget = new CanvasTarget(canvas)
@@ -329,3 +330,8 @@ function updateShadowFilterMode(value) {
   }
   updateShadowFilterControls()
 }
+
+addRenderGraphGuiAddon({
+  gui: controls,
+  renderer
+})

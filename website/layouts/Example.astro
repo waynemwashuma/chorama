@@ -1,6 +1,7 @@
 ---
 import { withBase } from "../utils/url";
 import packageJson from "../../package.json";
+import path from "node:path";
 
 interface Props {
   source: string;
@@ -18,12 +19,20 @@ const datGuiUrl = isProd
 const statsUrl = isProd
   ? `https://cdn.jsdelivr.net/npm/stats.js@${statsVersion}/src/Stats.js`
   : "/node_modules/stats.js/src/Stats.js";
+const addonsEntry = path
+  .resolve("./examples/addons/rendergraph_gui.js")
+  .split(path.sep)
+  .join("/");
+const renderGraphAddonUrl = isProd
+  ? withBase("/examples/addons/rendergraph_gui.js")
+  : `/@fs/${addonsEntry}`;
 
 const importMap = JSON.stringify({
   imports: {
     webgllis: isProd ? withBase("/vendor/webgllis/index.module.js") : "/src/index.js",
     "dat.gui": datGuiUrl,
     "stats.js": statsUrl,
+    "@examples/rendergraph_gui": renderGraphAddonUrl,
   },
 });
 
