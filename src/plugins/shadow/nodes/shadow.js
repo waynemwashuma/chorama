@@ -1,5 +1,5 @@
 import { Affine3, Matrix4, Vector3 } from "hisabati"
-import { DirectionalLight, SpotLight, PointLight, PCFShadowFilter, PCSSShadowFilter } from "../../../light"
+import { DirectionalLight, SpotLight, PointLight, PCFShadowFilter, PCSSShadowFilter } from "../../../objects"
 import { Object3D, PerspectiveProjection } from "../../../objects"
 import { Views, View } from "../../../renderer"
 import { ShadowMap } from "../resources/ShadowMap"
@@ -216,7 +216,7 @@ function buildPointShadowPass(light, shadowMap) {
 
 /**
  * @param {ShadowItem} item
- * @param {import("../../../light/index.js").ShadowFilteringModes} mode
+ * @param {import("../../../objects/light/index.js").ShadowFilteringModes} mode
  */
 function packShadowMode(item, mode) {
   if (typeof mode === "undefined") {

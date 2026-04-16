@@ -1,5 +1,5 @@
-import { Color, Vector3 } from '../math/index.js'
-import { Object3D } from '../objects/index.js'
+import { Color, Vector3 } from '../../math/index.js'
+import { Object3D } from '../object3d.js'
 import { SpotLightShadow } from './shadow/index.js'
 
 export class PointLight extends Object3D {

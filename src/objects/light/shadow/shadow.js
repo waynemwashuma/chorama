@@ -1,4 +1,4 @@
-import { OrthographicProjection } from "../../objects/index.js"
+import { OrthographicProjection } from "../../camera/index.js"
 
 export class PCFShadowFilter {
   /**

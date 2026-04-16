@@ -1,5 +1,5 @@
 import { Object3D } from "../../../objects/index.js"
-import { AmbientLight, PointLight, SpotLight,DirectionalLight } from "../../../light/index.js"
+import { AmbientLight, PointLight, SpotLight,DirectionalLight } from "../../../objects/index.js"
 import { ShadowMap } from "../../shadow/index.js"
 
 export class LightNode {

@@ -1,4 +1,5 @@
 export * from './camera/index.js'
+export * from './light/index.js'
 export * from './debug/index.js'
 export * from './object3d.js'
 export * from './mesh.js'

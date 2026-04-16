@@ -1,7 +1,7 @@
 import { assert } from "../../../utils"
 import { PrimitiveTopology } from "../../../constants"
 import { WebGLRenderDevice, GPUMesh, Shader } from "../../../core"
-import { DirectionalLight, PointLight, SpotLight } from "../../../light"
+import { DirectionalLight, PointLight, SpotLight } from "../../../objects"
 import { MeshMaterial3D, Object3D } from "../../../objects"
 import { RenderItem, Views } from "../../../renderer/index.js"
 import { WebGLRenderer } from "../../../renderer/index"

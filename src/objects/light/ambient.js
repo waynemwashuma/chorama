@@ -1,5 +1,5 @@
-import { Color } from '../math/index.js'
-import { Object3D } from '../objects/index.js'
+import { Color } from '../../math/index.js'
+import { Object3D } from '../object3d.js'
 
 export class AmbientLight extends Object3D {
   intensity = 1
