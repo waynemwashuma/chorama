@@ -53,7 +53,7 @@ function renderItems(view, device, renderer) {
   pass.end()
 }
 
-export class OpaquePassNode {
+export class CameraOpaquePassNode {
   subgraph() {
     return undefined
   }

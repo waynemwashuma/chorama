@@ -1,7 +1,7 @@
 import { Plugin, SortViewsNode, WebGLRenderer } from "../../renderer/index.js";
 import { ShadowMap, ShadowPipelines } from "./resources/index.js";
 import { ShadowOccluderNode, ShadowOpaquePassNode, ShadowViewNode } from "./nodes/index.js";
-import { CameraNode } from "../camera/index.js";
+import { CameraOpaquePassNode } from "../camera/index.js";
 
 export class ShadowPlugin extends Plugin {
   /**
@@ -20,7 +20,7 @@ export class ShadowPlugin extends Plugin {
     renderer.renderGraph.addDependency(ShadowViewNode.name, ShadowOccluderNode.name)
     renderer.renderGraph.addDependency(ShadowOccluderNode.name, SortViewsNode.name)
     renderer.renderGraph.addDependency(SortViewsNode.name, ShadowOpaquePassNode.name)
-    renderer.renderGraph.addDependency(ShadowOpaquePassNode.name, CameraNode.name)
+    renderer.renderGraph.addDependency(ShadowOpaquePassNode.name, CameraOpaquePassNode.name)
     
   }
 
