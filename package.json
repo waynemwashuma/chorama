@@ -45,9 +45,9 @@
   },
   "dependencies": {
     "dat.gui": "^0.7.9",
-    "graph-2": "file:../graph-2",
     "hisabati": "^0.1.0",
     "marangi": "^0.1.0",
-    "stats.js": "^0.17.0"
+    "stats.js": "^0.17.0",
+    "vifaa": "file:../vifaa"
   }
 }

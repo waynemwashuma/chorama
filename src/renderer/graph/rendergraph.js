@@ -1,4 +1,4 @@
-import { Graph, kahnTopologySort } from "graph-2"
+import { Graph, kahnTopologySort } from "vifaa"
 import { assert } from "../../utils/index.js"
 
 /**
