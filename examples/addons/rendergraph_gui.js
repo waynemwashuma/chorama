@@ -220,15 +220,10 @@ function readGraph(graph) {
       subgraph: node.subgraph,
       hasSubgraph: node.subgraph !== undefined
     }))
-    const idsByName = new Map(nodes.map((node) => [node.name, node.id]))
-    const executionOrderIds = snapshot.executionOrder
-      .map((name) => idsByName.get(name))
-      .filter((id) => id !== undefined)
-      .map((id) => /** @type {number} */ (id))
 
     return {
       nodes,
-      executionOrderIds,
+      executionOrderIds: snapshot.executionOrderIds ?? [],
       executionOrder: snapshot.executionOrder,
       edges: snapshot.edges
     }
