@@ -36,7 +36,8 @@ export class CameraViewNode {
         view: camera.view,
         position,
         tag: Camera.name,
-        object: camera
+        object: camera,
+        renderMask: camera.renderMask
       })
 
       views.push(cameraView)

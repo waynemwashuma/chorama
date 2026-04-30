@@ -39,6 +39,10 @@ export class ShadowOccluderNode {
             for (let i = 0; i < objects.length; i++) {
                 const object = /**@type {Object3D} */ (objects[i])
                 object.traverseDFS((child) => {
+                    if (!child.renderMask.test(view.renderMask)) {
+                        return true
+                    }
+
                     if (!(child instanceof MeshMaterial3D)) {
                         return true
                     }

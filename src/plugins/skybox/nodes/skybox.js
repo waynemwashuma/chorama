@@ -34,6 +34,10 @@ export class SkyBoxNode {
         const object = /**@type {Object3D}*/(objects[i])
 
         object.traverseDFS((child) => {
+          if (!child.renderMask.test(view.renderMask)) {
+            return true
+          }
+
           if (!(child instanceof SkyBox)) {
             return true
           }

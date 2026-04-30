@@ -33,6 +33,10 @@ export class MeshMaterialNode {
         const object = /**@type {Object3D}*/(objects[i])
 
         object.traverseDFS((child) => {
+          if (!child.renderMask.test(view.renderMask)) {
+            return true
+          }
+
           const item = createMeshMaterialRenderItem(child, renderDevice, renderer, pipelines)
 
           if (item) {

@@ -17,6 +17,7 @@ export class Object3D {
    */
   children = []
 
+  renderMask = new RenderMask()
   update() {
     this.transform.updateMatrix(this.parent?.transform)
   }
@@ -80,6 +81,7 @@ export class Object3D {
   copy(object, entityMap) {
     this.transform.copy(object.transform)
     this.name = object.name
+    this.renderMask.copy(object.renderMask)
     this.add(...object.children.map(child => {
       const childClone = child.clone(entityMap)
 
@@ -109,3 +111,57 @@ export class Object3D {
  * @param {Object3D} object
  * @returns {boolean}
  */
+
+
+export class RenderMask {
+  inner = -1
+
+  /**
+   * Test against a mask (any overlap).
+   * @param {RenderMask} mask
+   */
+  test(mask) {
+    return (this.inner & mask.inner) !== 0
+  }
+
+  /**
+   * Copy another render mask.
+   * @param {RenderMask} mask
+   */
+  copy(mask) {
+    this.inner = mask.inner
+    return this
+  }
+
+  clear() {
+    this.inner = 0
+    return this
+  }
+
+  /**
+   * Enable a bit by index.
+   * @param {number} index
+   */
+  on(index) {
+    this.inner |= (1 << index)
+    return this
+  }
+
+  /**
+   * Disable a bit by index.
+   * @param {number} index
+   */
+  off(index) {
+    this.inner &= ~(1 << index)
+    return this
+  }
+
+  /**
+   * Toggle a bit by index.
+   * @param {number} index
+   */
+  toggle(index) {
+    this.inner ^= (1 << index)
+    return this
+  }
+}

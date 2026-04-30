@@ -1,6 +1,6 @@
 import { GPUMesh } from "../../core/index.js"
 import { Affine3, Matrix4, Vector3 } from "../../math/index.js"
-import { Object3D } from "../../objects/index.js"
+import { Object3D, RenderMask } from "../../objects/index.js"
 import { RenderTarget } from "../../rendertarget/index.js"
 
 export class View {
@@ -47,6 +47,11 @@ export class View {
    */
   tag
   /**
+   * Render mask used to filter visible objects for this view.
+   * @type {RenderMask}
+   */
+  renderMask = new RenderMask()
+  /**
    * Source object that created this view.
    * @type {Object3D | undefined}
    */
@@ -63,7 +68,8 @@ export class View {
     near,
     far,
     tag,
-    object
+    object,
+    renderMask = new RenderMask()
   }) {
     this.renderTarget = renderTarget
     this.near = near
@@ -73,6 +79,7 @@ export class View {
     this.viewMatrix = view
     this.viewPosition = position
     this.object = object
+    this.renderMask.copy(renderMask)
   }
 
   getData() {
@@ -150,6 +157,7 @@ export class RenderItem {
  * @property {number} far
  * @property {string} tag
  * @property {Object3D} [object]
+ * @property {RenderMask} [renderMask]
  */
 
 /**
