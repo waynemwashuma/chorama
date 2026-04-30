@@ -28,6 +28,11 @@ export class RenderGraph {
   nodes = new Map()
 
   /**
+   * @type {[string,string][]}
+   */
+  queuedEdges = []
+
+  /**
    * @param {string} name
    * @param {RenderGraphNode} node
    * @returns {number}
@@ -46,23 +51,36 @@ export class RenderGraph {
   }
 
   /**
+   * @private
+   */
+  addDependencies() {
+    for (let i = this.queuedEdges.length - 1; i >= 0; i--) {
+      const [from, to] = /** @type {[string, string]} */ (this.queuedEdges[i])
+
+      const fromId = this.nodes.get(from)
+      const toId = this.nodes.get(to)
+
+      assert(fromId, `Render graph node "${from}" is missing`)
+      assert(toId, `Render graph node "${to}" is missing`)
+
+      this.graph.addEdge(fromId, toId, undefined)
+    }
+    this.queuedEdges = []
+  }
+
+  /**
    * @param {string} from
    * @param {string} to
    */
   addDependency(from, to) {
-    const fromId = this.nodes.get(from)
-    const toId = this.nodes.get(to)
-
-    assert(fromId, `Render graph node "${from}" is missing`)
-    assert(toId, `Render graph node "${to}" is missing`)
-
-    this.graph.addEdge(fromId, toId, undefined)
+    this.queuedEdges.push([from, to])
   }
 
   /**
    * @param {RenderGraphContext} context
    */
   execute(context) {
+    this.addDependencies()
     /** @type {number[] | undefined} */
     const order = kahnTopologySort(this.graph)
 
@@ -82,6 +100,8 @@ export class RenderGraph {
    * Returns a serializable snapshot of the render graph for tooling/debug UIs.
    */
   inspect() {
+    this.addDependencies()
+
     const typedGraph = /** @type {{ getNodes: () => any[]; getEdges: () => any[] }} */ (
       /** @type {unknown} */ (this.graph)
     )
@@ -138,6 +158,8 @@ export class RenderGraph {
       })
     }
 
+    /** @type {number[]} */
+    const executionOrderIds = []
     /** @type {string[]} */
     const executionOrder = []
     const sorted = kahnTopologySort(this.graph)
@@ -145,6 +167,7 @@ export class RenderGraph {
       for (let i = 0; i < sorted.length; i++) {
         const id = sorted[i]
         if (id === undefined) continue
+        executionOrderIds.push(id)
         executionOrder.push(namesById.get(id) ?? `Node_${id}`)
       }
     }
@@ -152,6 +175,7 @@ export class RenderGraph {
     return {
       nodes: resultNodes,
       edges: resultEdges,
+      executionOrderIds,
       executionOrder
     }
   }
