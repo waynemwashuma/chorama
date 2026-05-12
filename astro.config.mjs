@@ -28,7 +28,7 @@ export default defineConfig({
     plugins: [glsl()],
     resolve: {
       alias: {
-        "webgllis": path.resolve("./src/index.js"),
+        "chorama": path.resolve("./src/index.js"),
         "@configs": path.resolve("./website/config"),
         "@layouts": path.resolve("./website/layouts"),
         "@components": path.resolve("./website/components"),

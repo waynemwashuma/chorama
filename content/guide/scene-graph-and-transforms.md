@@ -17,7 +17,7 @@ Here, we focus on parent-child relationships and transform behavior.
 ## Step 1: Import What You Need
 
 ```js
-import { Object3D, MeshMaterial3D, Quaternion } from "webgl";
+import { Object3D, MeshMaterial3D, Quaternion } from "chorama";
 ```
 
 Use `Object3D` for grouping and transform hierarchy.

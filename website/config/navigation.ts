@@ -9,9 +9,9 @@ export interface NavTab {
 const tabs: NavTab[] = [
   {
     label: "Introduction",
-    href: "#webgllis",
+    href: "#chorama",
     children: [
-      { label: "Top", href: "#webgllis" },
+      { label: "Top", href: "#chorama" },
       { label: "Features", href: "#features" },
       { label: "Who This Is For", href: "#who-this-is-for" },
       { label: "Getting Started", href: "#getting-started" },

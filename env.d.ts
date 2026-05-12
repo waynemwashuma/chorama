@@ -8,7 +8,7 @@ declare module "*.glsl" {
 declare module "@examples/rendergraph_gui" {
   export function addRenderGraphGuiAddon(options: {
     gui: import("dat.gui").GUI
-    renderer: import("webgllis").WebGLRenderer
+    renderer: import("chorama").WebGLRenderer
     title?: string
     position?: { x: number; y: number }
     width?: number

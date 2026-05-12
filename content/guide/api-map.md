@@ -16,7 +16,7 @@ import {
   MeshMaterial3D,
   MeshMaterialPlugin,
   CameraPlugin
-} from "webgllis";
+} from "chorama";
 ```
 
 ## Rendering Core

@@ -10,7 +10,7 @@ interface Props {
   tabs?: Tab[];
 }
 
-const { title = "WebGLLIS", tabs = [] } = Astro.props;
+const { title = "Chorama", tabs = [] } = Astro.props;
 ---
 
 <!doctype html>
@@ -472,7 +472,7 @@ const { title = "WebGLLIS", tabs = [] } = Astro.props;
           let isActive = false;
 
           if (href.startsWith("#")) {
-            const hash = currentHash || "#webgllis";
+            const hash = currentHash || "#chorama";
             isActive = currentPath === "/" && href === hash;
           } else {
             isActive = normalizePath(href) === currentPath;

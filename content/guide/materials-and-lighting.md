@@ -26,7 +26,7 @@ import {
   AmbientLight,
   DirectionalLight,
   LightPlugin
-} from "webgl";
+} from "chorama";
 ```
 
 Use `BasicMaterial` when you do not need scene lighting.

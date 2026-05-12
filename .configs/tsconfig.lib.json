@@ -30,7 +30,7 @@
     "checkJs": true,
     "skipLibCheck": true,
     "paths": {
-      "webgllis": [
+      "chorama": [
         "./src/index.js"
       ]
     },

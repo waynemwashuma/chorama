@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 
 const sourceModule = resolve('dist/index.module.js');
 const sourceMap = resolve('dist/index.module.js.map');
-const targetDir = resolve('dist/website/vendor/webgllis');
+const targetDir = resolve('dist/website/vendor/chorama');
 const targetModule = resolve(targetDir, 'index.module.js');
 const targetMap = resolve(targetDir, 'index.module.js.map');
 const sourceAddonsDir = resolve('examples/addons');
@@ -26,4 +26,4 @@ if (existsSync(sourceAddonsDir)) {
   cpSync(sourceAddonsDir, targetAddonsDir, { recursive: true });
 }
 
-console.log('Staged webgllis module and example addons into dist/website/.');
+console.log('Staged chorama module and example addons into dist/website/.');

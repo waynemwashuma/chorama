@@ -14,7 +14,7 @@ import {
   BasicMaterial,
   OrthographicProjection,
   CameraPlugin
-} from "webgllis"
+} from "chorama"
 
 const canvas = document.createElement('canvas')
 const renderTarget = new CanvasTarget(canvas)

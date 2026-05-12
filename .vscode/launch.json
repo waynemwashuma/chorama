@@ -9,11 +9,11 @@
       "request": "launch",
       "reAttach": true,
       "name": "Launch iFirefox",
-      "url": "http://127.0.0.1:5500/examples/index.html",
+      "url": "http://127.0.0.1:4321/examples/index.html",
       "webRoot": "${workspaceFolder}",
       "pathMappings": [
         {
-          "url": "http://127.0.0.1:5500",
+          "url": "http://127.0.0.1:4321",
           "path": "${workspaceFolder}"
         }
       ]
@@ -22,7 +22,7 @@
       "type": "chrome",
       "request": "launch",
       "name": "Launch Chrome=",
-      "url": "http://127.0.0.1:5500/examples/index.html",
+      "url": "http://127.0.0.1:4321/examples/index.html",
       "webRoot": "${workspaceFolder}"
     }
   ]

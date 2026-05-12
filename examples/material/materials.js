@@ -19,7 +19,7 @@ import {
   LightPlugin,
   CanvasTarget,
   CameraPlugin
-} from "webgllis"
+} from "chorama"
 
 // performance monitor
 const stats = new Stats()

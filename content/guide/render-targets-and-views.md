@@ -24,7 +24,7 @@ import {
   TextureType,
   TextureFormat,
   Camera
-} from "webgl";
+} from "chorama";
 ```
 
 Use `CanvasTarget` for on-screen output.

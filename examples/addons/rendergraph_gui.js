@@ -5,7 +5,7 @@
 /**
  * @typedef RenderGraphAddonOptions
  * @property {import("dat.gui").GUI} gui
- * @property {import("webgllis").WebGLRenderer} renderer
+ * @property {import("chorama").WebGLRenderer} renderer
  * @property {string} [title]
  * @property {{x:number;y:number}} [position]
  * @property {number} [width]

@@ -32,8 +32,8 @@ Install these first:
 ### 2) Clone the repository and install dependencies
 
 ```bash
-git clone https://github.com/waynemwashuma/webgl.git
-cd webgl
+git clone https://github.com/waynemwashuma/chorama.git
+cd chorama
 npm install
 ```
 
@@ -66,7 +66,7 @@ Example layout used below:
 ```text
 your-project/
   libs/
-    webgl/
+    chorama/
       index.module.js
       index.umd.js
 ```
@@ -75,7 +75,7 @@ your-project/
 
 #### ESM (recommended)
 
-If you use a bundler, set an alias so your app can import from `"webgl"` directly.
+If you use a bundler, set an alias so your app can import from `"chorama"` directly.
 
 ##### Vite (`vite.config.js`)
 
@@ -90,7 +90,7 @@ const __dirname = path.dirname(__filename);
 export default defineConfig({
   resolve: {
     alias: {
-      webgl: path.resolve(__dirname, "libs/webgl/index.module.js")
+      chorama: path.resolve(__dirname, "libs/chorama/index.module.js")
     }
   }
 });
@@ -104,7 +104,7 @@ const path = require("node:path");
 module.exports = {
   resolve: {
     alias: {
-      webgl: path.resolve(__dirname, "libs/webgl/index.module.js")
+      chorama: path.resolve(__dirname, "libs/chorama/index.module.js")
     }
   }
 };
@@ -113,7 +113,7 @@ module.exports = {
 Then import in app code:
 
 ```js
-import { WebGLRenderer, MeshMaterialPlugin, CameraPlugin } from "webgl";
+import { WebGLRenderer, MeshMaterialPlugin, CameraPlugin } from "chorama";
 ```
 
 #### Plain HTML with browser import maps (no bundler)
@@ -126,11 +126,11 @@ Use the ESM file with an import map:
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Webgllis - Import Map</title>
+    <title>Chorama - Import Map</title>
     <script type="importmap">
       {
         "imports": {
-          "webgl": "./libs/webgl/index.module.js"
+          "chorama": "./libs/chorama/index.module.js"
         }
       }
     </script>
@@ -138,7 +138,7 @@ Use the ESM file with an import map:
   <body>
     <canvas id="app"></canvas>
     <script type="module">
-      import { WebGLRenderer, MeshMaterialPlugin, CameraPlugin } from "webgl";
+      import { WebGLRenderer, MeshMaterialPlugin, CameraPlugin } from "chorama";
 
       const canvas = document.getElementById("app");
       const renderer = new WebGLRenderer({
@@ -160,13 +160,13 @@ Use the UMD build if you do not want modules:
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Webgllis - Plain HTML</title>
-    <script src="./libs/webgl/index.umd.js"></script>
+    <title>Chorama - Plain HTML</title>
+    <script src="./libs/chorama/index.umd.js"></script>
   </head>
   <body>
     <canvas id="app"></canvas>
     <script>
-      const { WebGLRenderer, MeshMaterialPlugin, CameraPlugin } = window.WEBGL;
+      const { WebGLRenderer, MeshMaterialPlugin, CameraPlugin } = window.CHORAMA;
       const canvas = document.getElementById("app");
 
       const renderer = new WebGLRenderer({
@@ -177,4 +177,3 @@ Use the UMD build if you do not want modules:
   </body>
 </html>
 ```
-

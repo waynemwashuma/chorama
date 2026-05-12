@@ -25,7 +25,7 @@ Those topics are covered in other dedicated guides.
 ## Before You Start
 
 Make sure you already have a working local install from [Installation](/guide/installation).
-You should be able to import from `webgl` or your local alias path.
+You should be able to import from `chorama` or your local alias path.
 
 ## Build Your first scene
 
@@ -46,7 +46,7 @@ import {
   Quaternion,
   MeshMaterialPlugin,
   CameraPlugin
-} from "webgl";
+} from "chorama";
 ```
 
 This imports all the items we require for this setup.

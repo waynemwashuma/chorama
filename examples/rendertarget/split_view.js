@@ -17,7 +17,7 @@ import {
   MeshMaterialPlugin,
   SkyboxPlugin,
   CameraPlugin
-} from "webgllis"
+} from "chorama"
 
 const settings = {
   slider: 0

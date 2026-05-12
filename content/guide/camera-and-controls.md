@@ -21,7 +21,7 @@ import {
   PerspectiveProjection,
   OrthographicProjection,
   OrbitCameraControls
-} from "webgl";
+} from "chorama";
 ```
 
 You only need `OrthographicProjection` if you plan to switch projection type.

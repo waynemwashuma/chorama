@@ -29,7 +29,7 @@ import {
   PCSSShadowFilter,
   SpotLightShadow,
   CameraPlugin
-} from "webgllis"
+} from "chorama"
 import { GUI } from "dat.gui"
 import { addRenderGraphGuiAddon } from "@examples/rendergraph_gui"
 

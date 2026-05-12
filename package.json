@@ -1,5 +1,5 @@
 {
-  "name": "webgl",
+  "name": "chorama",
   "version": "0.0.0",
   "description": "A rendering library",
   "keywords": [
@@ -8,13 +8,13 @@
     "draw",
     "game"
   ],
-  "homepage": "https://github.com/waynemwashuma/webgl#readme",
+  "homepage": "https://github.com/waynemwashuma/chorama#readme",
   "bugs": {
-    "url": "https://github.com/waynemwashuma/webgl/issues"
+    "url": "https://github.com/waynemwashuma/chorama/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/waynemwashuma/webgl.git"
+    "url": "git+https://github.com/waynemwashuma/chorama.git"
   },
   "license": "MIT",
   "author": "Wayne Mwashuma",
@@ -28,7 +28,7 @@
     "dev": "astro dev",
     "test": "node test",
     "tsc": "tsc -b tsconfig.json",
-    "build-website": "npm run build-src && astro build && node scripts/stage-webgllis.mjs",
+    "build-website": "npm run build-src && astro build && node scripts/stage-chorama.mjs",
     "build-src": "rollup --config rollup.config.js",
     "build": "npm run build-website"
   },

@@ -4,14 +4,14 @@ title: "Guide"
 
 # Guide
 
-This guide helps you build scenes with WebGLLIS using practical, task-first steps.
+This guide helps you build scenes with Chorama using practical, task-first steps.
 
 ## Overview
 
-WebGLLIS is a modular WebGL2 rendering library focused on explicit control: you compose render behavior with plugins, build scenes from reusable object/material/light primitives, and keep direct visibility into the render flow.
+Chorama is a modular WebGL2 rendering library focused on explicit control: you compose render behavior with plugins, build scenes from reusable object/material/light primitives, and keep direct visibility into the render flow.
 
 > [!WARNING]
-> WebGLLIS is currently experimental and is not recommended for production use.
+> Chorama is currently experimental and is not recommended for production use.
 > Expect API changes, behavior changes and breaking changes as the library evolves.
 
 This guide is structured to take you from first render to production-style scene setup. Instead of covering every class in isolation first, each chapter is anchored to a concrete task and points you to full runnable examples.
@@ -30,7 +30,7 @@ Use this if you want direct WebGL2 control but still want reusable building bloc
 
 ## How To Use This Guide
 
-- New to WebGLLIS: follow the reading order from top to bottom.
+- New to Chorama: follow the reading order from top to bottom.
 - Migrating from another renderer: start at [First Scene](/guide/first-scene), then jump to [Plugins and Render Pipeline](/guide/plugins-and-render-pipeline).
 - Looking for a specific API: use [API Map](/guide/api-map) as an index, then return to task pages for applied usage.
 - Blocked on behavior: check [Troubleshooting](/guide/troubleshooting), then compare your setup against a matching example route.
@@ -53,7 +53,7 @@ Use this if you want direct WebGL2 control but still want reusable building bloc
 The snippet below creates the minimum pieces needed to render a scene:
 
 ```js
-import { WebGLRenderDevice, CanvasTarget, WebGLRenderer, Camera } from "webgllis";
+import { WebGLRenderDevice, CanvasTarget, WebGLRenderer, Camera } from "chorama";
 
 const canvas = document.createElement("canvas");
 const device = new WebGLRenderDevice(canvas, { depth: true });

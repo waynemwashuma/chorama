@@ -29,7 +29,7 @@ const renderGraphAddonUrl = isProd
 
 const importMap = JSON.stringify({
   imports: {
-    webgllis: isProd ? withBase("/vendor/webgllis/index.module.js") : "/src/index.js",
+    chorama: isProd ? withBase("/vendor/chorama/index.module.js") : "/src/index.js",
     "dat.gui": datGuiUrl,
     "stats.js": statsUrl,
     "@examples/rendergraph_gui": renderGraphAddonUrl,

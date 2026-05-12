@@ -22,7 +22,7 @@ import {
   LightPlugin,
   ShadowPlugin,
   SkyboxPlugin
-} from "webgl";
+} from "chorama";
 ```
 
 Start with the smallest plugin set your scene needs.

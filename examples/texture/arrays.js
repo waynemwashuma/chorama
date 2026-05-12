@@ -17,7 +17,7 @@ import {
   Sampler,
   CanvasTarget,
   CameraPlugin
-} from 'webgllis';
+} from 'chorama';
 
 // Material to view the texture array
 class TextureArrayMaterial extends Material {

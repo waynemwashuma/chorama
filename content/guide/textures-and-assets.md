@@ -15,7 +15,7 @@ Here, we focus only on bringing external assets into that scene.
 ## Step 1: Import Loaders
 
 ```js
-import { TextureLoader, OBJLoader, GLTFLoader } from "webgl";
+import { TextureLoader, OBJLoader, GLTFLoader } from "chorama";
 ```
 
 Create one loader instance per asset type and reuse it.
