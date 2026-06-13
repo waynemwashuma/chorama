@@ -50,6 +50,6 @@
     "hisabati": "^0.1.0",
     "marangi": "^0.1.0",
     "stats.js": "^0.17.0",
-    "vifaa": "file:../vifaa"
+    "vifaa": "^0.3.0"
   }
 }
