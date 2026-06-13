@@ -1,6 +1,7 @@
 ---
 import { getCollection } from "astro:content";
 import Example from "@layouts/Example.astro";
+import { withBase } from "../../../utils/url";
 
 export async function getStaticPaths() {
   const entries = await getCollection("examples");
@@ -12,6 +13,17 @@ export async function getStaticPaths() {
 }
 
 const { entry } = Astro.props;
+const source = transformUrls(entry.data.source)
+
+function transformUrls(source: string) {
+  return source.replace(
+    /(["'`])(\/(?!\/)[^"'`]*)\1/g,
+    (_: string, quote: string, path: string) => {
+      return `${quote}${withBase(path)}${quote}`
+    }
+  )
+}
+
 ---
 
-<Example title={entry.data.title} source={entry.data.source} />
+<Example title={entry.data.title} source={source} />

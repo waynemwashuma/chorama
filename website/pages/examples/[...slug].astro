@@ -8,7 +8,7 @@ import { withBase } from "../../utils/url";
 export async function getStaticPaths() {
   const entries = await getCollection("examples");
 
-  return entries.map((entry) => ({
+  return entries.map((entry: { id: any; }) => ({
     params: { slug: entry.id },
     props: { entry }
   }));
@@ -17,6 +17,7 @@ export async function getStaticPaths() {
 const { entry } = Astro.props;
 const title = entry.data.title;
 const sampleUrl = withBase(`/examples/samples/${entry.id}`);
+
 ---
 
 <DocLayout title={`${title} | Chorama`} tabs={sidebarTabs}>
