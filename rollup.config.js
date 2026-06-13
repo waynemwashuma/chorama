@@ -1,6 +1,7 @@
 import { readFileSync } from "fs"
 import { resolve } from "path"
 import { cwd } from "process"
+import nodeResolve from "@rollup/plugin-node-resolve"
 
 const pkg = JSON.parse(readFileSync(resolve(cwd(), "./package.json")).toString())
 
@@ -30,11 +31,16 @@ function glsl() {
     }
   }
 }
+
+const plugins = [
+  glsl(),
+  nodeResolve()
+]
 export default [{
 
   // UMD
   input,
-  plugins: [glsl()],
+  plugins,
   output: {
     file: "dist/index.umd.js",
     format: "umd",
@@ -49,7 +55,7 @@ export default [{
 
   // ESM
   input,
-  plugins: [glsl()],
+  plugins,
   output: {
     file: "dist/index.module.js",
     format: "esm",
