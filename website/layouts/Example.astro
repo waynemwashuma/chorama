@@ -11,12 +11,28 @@ interface Props {
 const { source, title = "Example" } = Astro.props;
 const isProd = import.meta.env.PROD;
 
-const datGuiVersion = packageJson.dependencies["dat.gui"].replace(/^[^\d]*/, "");
-const statsVersion = packageJson.dependencies["stats.js"].replace(/^[^\d]*/, "");
-const marangiVersion = packageJson.dependencies["marangi"].replace(/^[^\d]*/, "");
-const hisabatiVersion = packageJson.dependencies["hisabati"].replace(/^[^\d]*/, "");
+const datGuiVersion = packageJson.dependencies["dat.gui"].replace(
+  /^[^\d]*/,
+  "",
+);
+const statsVersion = packageJson.dependencies["stats.js"].replace(
+  /^[^\d]*/,
+  "",
+);
+const marangiVersion = packageJson.dependencies["marangi"].replace(
+  /^[^\d]*/,
+  "",
+);
+const hisabatiVersion = packageJson.dependencies["hisabati"].replace(
+  /^[^\d]*/,
+  "",
+);
+const vifaaVersion = packageJson.dependencies["vifaa"].replace(
+  /^[^\d]*/,
+  "",
+);
 const datGuiUrl = isProd
-  ? `https://cdn.jsdelivr.net/nisabatipm/dat.gui@${datGuiVersion}/build/dat.gui.module.js`
+  ? `https://cdn.jsdelivr.net/npm/dat.gui@${datGuiVersion}/build/dat.gui.module.js`
   : "/node_modules/dat.gui/build/dat.gui.module.js";
 const statsUrl = isProd
   ? `https://cdn.jsdelivr.net/npm/stats.js@${statsVersion}/src/Stats.js`
@@ -27,6 +43,9 @@ const marangiUrl = isProd
 const hisabatiUrl = isProd
   ? `https://cdn.jsdelivr.net/npm/hisabati@${hisabatiVersion}/build/index.module.js`
   : "/node_modules/hisabati/build/index.module.js";
+const vifaaUrl = isProd
+  ? `https://cdn.jsdelivr.net/npm/vifaa@${vifaaVersion}/build/index.module.js`
+  : "/node_modules/vifaa/build/index.module.js";
 const addonsEntry = path
   .resolve("./examples/addons/rendergraph_gui.js")
   .split(path.sep)
@@ -37,9 +56,12 @@ const renderGraphAddonUrl = isProd
 
 const importMap = JSON.stringify({
   imports: {
-    "chorama": isProd ? withBase("/vendor/chorama/index.module.js") : "/src/index.js",
-    "marangi":marangiUrl,
-    "hisabati":hisabatiUrl,
+    chorama: isProd
+      ? withBase("/vendor/chorama/index.module.js")
+      : "/src/index.js",
+    marangi: marangiUrl,
+    hisabati: hisabatiUrl,
+    vifaa: vifaaUrl,
     "dat.gui": datGuiUrl,
     "stats.js": statsUrl,
     "@examples/rendergraph_gui": renderGraphAddonUrl,
@@ -47,11 +69,13 @@ const importMap = JSON.stringify({
 });
 
 const rewriteAssetLiterals = (script: string): string =>
-  script.replace(/(["'`])\/?assets\/([^"'`]+)\1/g, (_, _quote: string, rest: string) => {
-    return '`' + withBase(`/${rest}`) + '`';
-  });
-const runnerScript = isProd? rewriteAssetLiterals(source) : source
-
+  script.replace(
+    /(["'`])\/?assets\/([^"'`]+)\1/g,
+    (_, _quote: string, rest: string) => {
+      return "`" + withBase(`/${rest}`) + "`";
+    },
+  );
+const runnerScript = isProd ? rewriteAssetLiterals(source) : source;
 ---
 
 <!doctype html>
