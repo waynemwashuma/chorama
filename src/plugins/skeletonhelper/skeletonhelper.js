@@ -10,11 +10,6 @@ import { Texture } from "../../texture/index.js";
 export class SkeletonHelperPlugin extends Plugin {
 
   /**
-   * @override
-   */
-  preprocess() { }
-
-  /**
    * @type {number | undefined}
    */
   pipelineId

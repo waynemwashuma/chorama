@@ -23,9 +23,4 @@ export class ShadowPlugin extends Plugin {
     renderer.renderGraph.addDependency(ShadowOpaquePassNode.name, CameraOpaquePassNode.name)
     
   }
-
-  /**
-   * @override
-   */
-  preprocess() {}
 }

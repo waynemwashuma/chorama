@@ -26,11 +26,6 @@ export class MeshMaterialPlugin extends Plugin {
     renderer.renderGraph.addDependency(CameraViewNode.name, MeshMaterialNode.name)
     renderer.renderGraph.addDependency(MeshMaterialNode.name, SortViewsNode.name)
   }
-
-  /**
-   * @override
-   */
-  preprocess() { }
 }
 
 /**

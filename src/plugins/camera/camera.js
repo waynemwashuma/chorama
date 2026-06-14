@@ -12,8 +12,4 @@ export class CameraPlugin extends Plugin {
     renderer.renderGraph.addDependency(CameraViewNode.name, SortViewsNode.name)
     renderer.renderGraph.addDependency(SortViewsNode.name, CameraOpaquePassNode.name)
   }
-  /**
-   * @override
-   */
-  preprocess() {}
 }

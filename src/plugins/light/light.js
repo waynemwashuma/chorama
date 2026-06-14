@@ -16,8 +16,4 @@ export class LightPlugin extends Plugin {
     renderer.renderGraph.addNode(LightNode.name, new LightNode())
     renderer.renderGraph.addDependency(LightNode.name, SortViewsNode.name)
   }
-  /**
-   * @override
-   */
-  preprocess() {}
 }

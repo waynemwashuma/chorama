@@ -155,11 +155,6 @@ export class WebGLRenderer {
       })
     }
 
-    for (let i = 0; i < this.plugins.length; i++) {
-      const plugin = /**@type {Plugin} */ (this.plugins[i]);
-
-      plugin.preprocess(objects, renderDevice, this)
-    }
     this.renderGraph.execute({
       renderer: this,
       objects,
