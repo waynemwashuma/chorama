@@ -11,7 +11,7 @@ interface Props {
 const { source, title = "Example" } = Astro.props;
 const isProd = import.meta.env.PROD;
 
-const datGuiVersion = packageJson.dependencies["dat.gui"].replace(
+const datGuiVersion = packageJson.devDependencies["dat.gui"].replace(
   /^[^\d]*/,
   "",
 );

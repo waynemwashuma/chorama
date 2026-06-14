@@ -39,6 +39,7 @@
     "@types/node": "^25.3.3",
     "@types/stats.js": "^0.17.4",
     "astro": "^5.18.0",
+    "dat.gui": "^0.7.9",
     "remark-gfm": "^4.0.1",
     "remark-github-blockquote-alert": "^2.0.1",
     "rollup": "^4.52.5",
@@ -46,7 +47,6 @@
     "vite": "^7.1.12"
   },
   "dependencies": {
-    "dat.gui": "^0.7.9",
     "hash-it": "^7.0.2",
     "hisabati": "^0.1.0",
     "marangi": "^0.1.0",
