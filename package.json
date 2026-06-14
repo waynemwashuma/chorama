@@ -47,6 +47,7 @@
   },
   "dependencies": {
     "dat.gui": "^0.7.9",
+    "hash-it": "^7.0.2",
     "hisabati": "^0.1.0",
     "marangi": "^0.1.0",
     "stats.js": "^0.17.0",

@@ -51,6 +51,18 @@ export function assert(test, message) {
 }
 
 /**
+ * Throws an error if the supplied test is false.
+ *
+ * @template T
+ * @param {T} test
+ * @param {string} message
+ * @returns {void}
+ */
+export function assertTrue(test, message) {
+  if (!test) throw message
+}
+
+/**
  * @template T
  * @template {string} U
  * @typedef {T & {__brand: U;}} Brand
