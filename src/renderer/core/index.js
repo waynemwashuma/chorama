@@ -1,5 +1,3 @@
-/**@import { WebGLRenderDevice, WebGLRenderPipeline } from "../../core/index.js" */
-/**@import { WebGLRenderer } from "../renderer.js" */
 import { GPUMesh } from "../../core/index.js"
 import { Affine3, Matrix4, Vector3 } from "../../math/index.js"
 import { Object3D, RenderMask } from "../../objects/index.js"
@@ -173,9 +171,9 @@ export class RenderItem {
 
 /**
  * @callback UniformBinder
- * @param {WebGLRenderDevice} device
- * @param {WebGLRenderer} renderer
- * @param {WebGLRenderPipeline} pipeline
+ * @param {import("../../core/index.js").WebGLRenderDevice} device
+ * @param {import("../renderer.js").WebGLRenderer} renderer
+ * @param {import("../../core/index.js").WebGLRenderPipeline} pipeline
  * @param {any} bindGroup
  * @param {Matrix4} transform
  */

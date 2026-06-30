@@ -3,6 +3,8 @@ import { Object3D } from "../object3d.js"
 import { RenderTarget } from "../../rendertarget/index.js"
 import { PerspectiveProjection, Projection } from "./projection.js"
 
+export class ReinhardToneMapping { }
+
 export class Camera extends Object3D {
 	near = 0.1
 	
@@ -16,6 +18,12 @@ export class Camera extends Object3D {
 	 * @type {Projection}
 	 */
 	projection = new PerspectiveProjection()
+
+	/**
+	 * Undefined means no camera tone mapping.
+	 * @type {ReinhardToneMapping | undefined}
+	 */
+	toneMapping = new ReinhardToneMapping()
 
 	/**
 	 * @type {Matrix4}

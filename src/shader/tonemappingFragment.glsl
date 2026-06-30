@@ -14,7 +14,12 @@ vec3 reinhard_tonemapping(vec3 color) {
 
 void main() {
   vec4 source_color = texture(mainTexture, v_uv);
-  vec3 mapped_color = reinhard_tonemapping(source_color.rgb);
 
-  fragment_color = vec4(quick_linear_to_sRGB(mapped_color), source_color.a);
+  #ifdef REINHARD_TONEMAP
+    vec3 mapped_color = source_color.rgb;
+    mapped_color = reinhard_tonemapping(mapped_color);
+    fragment_color = vec4(quick_linear_to_sRGB(mapped_color), source_color.a);
+  #else
+    fragment_color = source_color;
+  #endif
 }

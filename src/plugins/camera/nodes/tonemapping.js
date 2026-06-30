@@ -104,6 +104,15 @@ function getTonemappingPipeline(device, renderer, pipelineState) {
     pipelineState.pipelineId = undefined
   }
 
+  const vertexShader = new Shader({
+    source: fullscreenVertex
+  })
+  const fragmentShader = new Shader({
+    source: tonemappingFragment
+  })
+
+  fragmentShader.defines.set("REINHARD_TONEMAP", "1")
+
   /**
    * @type {import("../../../core/index.js").WebGLRenderPipelineDescriptor}
    */
@@ -113,13 +122,9 @@ function getTonemappingPipeline(device, renderer, pipelineState) {
     cullFace: CullFace.None,
     topology: PrimitiveTopology.Triangles,
     vertexLayout: new MeshVertexLayout([]),
-    vertex: new Shader({
-      source: fullscreenVertex
-    }),
+    vertex: vertexShader,
     fragment: {
-      source: new Shader({
-        source: tonemappingFragment
-      }),
+      source: fragmentShader,
       targets: [{
         format: TextureFormat.RGBA8Unorm
       }]
@@ -127,12 +132,12 @@ function getTonemappingPipeline(device, renderer, pipelineState) {
   }
 
   for (const [name, value] of renderer.defines) {
-    descriptor.vertex.defines.set(name, value)
-    descriptor.fragment?.source?.defines?.set(name, value)
+    vertexShader.defines.set(name, value)
+    fragmentShader.defines.set(name, value)
   }
   for (const [name, value] of renderer.includes) {
-    descriptor.vertex.includes.set(name, value)
-    descriptor.fragment?.source?.includes?.set(name, value)
+    vertexShader.includes.set(name, value)
+    fragmentShader.includes.set(name, value)
   }
 
   const [pipeline, newId] = renderer.caches.createRenderPipeline(device, descriptor)
