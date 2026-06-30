@@ -99,7 +99,7 @@ function update() {
 
 function updateView() {
   const fullWidth = innerWidth * devicePixelRatio
-  const fullHeight = innerWidth * devicePixelRatio
+  const fullHeight = innerHeight * devicePixelRatio
 
   canvas.style.width = innerWidth + "px"
   canvas.style.height = innerHeight + "px"

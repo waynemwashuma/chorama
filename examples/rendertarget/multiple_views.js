@@ -135,7 +135,7 @@ function update() {
 
 function updateView() {
   const fullWidth = innerWidth * devicePixelRatio
-  const fullHeight = innerWidth * devicePixelRatio
+  const fullHeight = innerHeight * devicePixelRatio
   const halfFullWidth = fullWidth / 2
   const halfFullHeight = fullHeight / 2
 
