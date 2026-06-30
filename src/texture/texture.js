@@ -45,12 +45,6 @@ export class Texture {
   #generateMipmaps
 
   /**
-   * Whether the texture should be flipped vertically on upload.
-   * @type {boolean}
-   */
-  #flipY
-
-  /**
    * The type of texture (e.g., Texture2D, TextureCube, etc.).
    * @type {TextureType}
    */
@@ -64,7 +58,6 @@ export class Texture {
     type,
     format = Texture.defaultSettings.format,
     generateMipmaps = Texture.defaultSettings.generateMipmaps,
-    flipY = Texture.defaultSettings.flipY,
     width = Texture.defaultSettings.width,
     height = Texture.defaultSettings.height,
     depth = Texture.defaultSettings.depth,
@@ -74,7 +67,6 @@ export class Texture {
     this.#width = width
     this.#height = height
     this.#depth = depth
-    this.#flipY = flipY
     this.#format = format
     this.#generateMipmaps = generateMipmaps
   }
@@ -132,13 +124,6 @@ export class Texture {
     this.#changed = true
   }
 
-  /** @type {boolean} */
-  get flipY() { return this.#flipY }
-  set flipY(value) {
-    this.#flipY = value
-    this.#changed = true
-  }
-
   /** @type {TextureType} */
   get type() { return this.#type }
   set type(value) {
@@ -153,7 +138,6 @@ export class Texture {
   apply({
     format = Texture.defaultSettings.format,
     generateMipmaps = Texture.defaultSettings.generateMipmaps,
-    flipY = Texture.defaultSettings.flipY,
     width = Texture.defaultSettings.width,
     height = Texture.defaultSettings.height,
     depth = Texture.defaultSettings.depth,
@@ -161,7 +145,6 @@ export class Texture {
     this.width = width
     this.height = height
     this.depth = depth
-    this.flipY = flipY
     this.format = format
     this.generateMipmaps = generateMipmaps
   }
@@ -178,7 +161,6 @@ export class Texture {
     this.height = other.height
     this.depth = other.depth
     this.type = other.type
-    this.flipY = other.flipY
     this.generateMipmaps = other.generateMipmaps
     return this
   }
@@ -216,7 +198,6 @@ export class Texture {
   static defaultSettings = {
     format: TextureFormat.RGBA8Unorm,
     generateMipmaps: false,
-    flipY: false,
     width: 0,
     height: 0,
     depth: 1,
@@ -227,7 +208,6 @@ export class Texture {
  * @typedef TextureSettings
  * @property {boolean} [generateMipmaps=true]
  * @property {TextureFormat} [format]
- * @property {boolean} [flipY]
  * @property {number} [width]
  * @property {number} [height]
  * @property {number} [depth]
