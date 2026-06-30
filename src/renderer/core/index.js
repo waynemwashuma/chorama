@@ -1,3 +1,5 @@
+/**@import { WebGLRenderDevice, WebGLRenderPipeline } from "../../core/index.js" */
+/**@import { WebGLRenderer } from "../renderer.js" */
 import { GPUMesh } from "../../core/index.js"
 import { Affine3, Matrix4, Vector3 } from "../../math/index.js"
 import { Object3D, RenderMask } from "../../objects/index.js"
