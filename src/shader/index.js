@@ -1,6 +1,7 @@
 export * from './common/index.js'
 export * from './debug/index.js'
 export { default as basicVertex } from './basicVertex.glsl'
+export { default as fullscreenVertex } from './fullscreenVertex.glsl'
 export { default as basicFragment } from './basicFragment.glsl'
 export { default as normalFragment } from './normalFragment.glsl'
 export { default as lambertFragment } from './lambertFragment.glsl'
