@@ -120,8 +120,8 @@ export class FrameBuffer {
         context.disable(WebGL2RenderingContext.STENCIL_TEST)
       }
     } else {
-      context.enable(WebGL2RenderingContext.DEPTH_TEST)
-      context.enable(WebGL2RenderingContext.STENCIL_TEST)
+      context.disable(WebGL2RenderingContext.DEPTH_TEST)
+      context.disable(WebGL2RenderingContext.STENCIL_TEST)
     }
   }
 }
