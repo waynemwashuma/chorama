@@ -4,6 +4,7 @@ import { TextureFormat, TextureType, getTextureFormatSize } from '../constants/i
 import { Texture } from '../texture/index.js';
 import { assert } from '../utils/index.js';
 import { Loader, OnAssetLoadedStrategy } from './loader.js';
+import { flipImageData } from './utils.js';
 
 /**
  * @extends {Loader<Texture,TextureLoadSettings>}
@@ -19,10 +20,12 @@ export class TextureLoader extends Loader {
    * @override
    * @param {ArrayBuffer[]} buffers
    * @param {Texture} destination
-   * @param {{ mimeType?: string }} [settings]
+   * @param {TextureParseSettings} [settings]
    */
   async parse(buffers, destination, settings = {}) {
-    let width = 0, height = 0
+    const textureFormat = TextureFormat.RGBA8Unorm
+    const pixelSize = getTextureFormatSize(textureFormat)
+    const { flipX = false, flipY = false } = settings
     const data = buffers.map(async (buffer) => {
       const blob = new Blob(
         [buffer],
@@ -32,29 +35,42 @@ export class TextureLoader extends Loader {
       const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
       const ctx = canvas.getContext('2d')
 
-      assert(ctx, "Could not sreate context to load image.")
+      assert(ctx, "Could not create context to load image.")
       ctx.drawImage(bitmap, 0, 0)
-      width = bitmap.width
-      height = bitmap.height
 
-      return ctx.getImageData(0, 0, bitmap.width, bitmap.height, {
+      const pixels = ctx.getImageData(0, 0, bitmap.width, bitmap.height, {
         colorSpace: "srgb"
       }).data.buffer
+
+      return {
+        width: bitmap.width,
+        height: bitmap.height,
+        pixels: flipImageData(pixels, bitmap.width, bitmap.height, pixelSize, {
+          flipX,
+          flipY
+        })
+      }
     })
-    const textureFormat = TextureFormat.RGBA8Unorm
     const images = await Promise.all(data)
+    const firstImage = images[0]
+    const width = firstImage?.width || 0
+    const height = firstImage?.height || 0
     const depth = images.length
-    const sliceSize = getTextureFormatSize(textureFormat) * width * height
+    const sliceSize = pixelSize * width * height
     const buffer = new ArrayBuffer(
       sliceSize * depth
     )
     images.forEach((image, i) => {
-      const sourceView = new Uint8Array(image)
+      assert(
+        image.width === width && image.height === height,
+        "Texture images must have matching dimensions."
+      )
+      const sourceView = new Uint8Array(image.pixels)
       const destView = new Uint8Array(buffer, sliceSize * i, sliceSize)
       destView.set(sourceView)
     })
     destination.data = buffer
-    destination.format = textureFormat,
+    destination.format = textureFormat
     destination.width = width
     destination.height = height
     destination.depth = depth
@@ -86,5 +102,17 @@ export class TextureLoader extends Loader {
  * @property {string[]} paths
  * @property {TextureType} [type]
  * @property {string} [mimeType]
+ * @property {boolean} [flipX]
+ * @property {boolean} [flipY]
+ * @property {TextureSettings} [textureSettings]
+ */
+
+/**
+ * @typedef TextureParseSettings
+ * @property {string[]} [paths]
+ * @property {TextureType} [type]
+ * @property {string} [mimeType]
+ * @property {boolean} [flipX]
+ * @property {boolean} [flipY]
  * @property {TextureSettings} [textureSettings]
  */

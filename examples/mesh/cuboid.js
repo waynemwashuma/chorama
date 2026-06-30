@@ -34,9 +34,7 @@ const cameraControls = new OrbitCameraControls(camera, canvas)
 const textureLoader = new TextureLoader()
 const texture = textureLoader.load({
   paths: ["/images/uv.jpg"],
-  textureSettings: {
-    flipY: true
-  }
+  flipY: true
 })
 const meshBuilder = new CuboidMeshBuilder()
 

@@ -41,9 +41,7 @@ const camera = new Camera(renderTarget)
 const textureLoader = new TextureLoader()
 const texture = textureLoader.load({
   paths: ["/images/uv.jpg"],
-  textureSettings:{
-    flipY:true
-  }
+  flipY: true
 })
 
 // lights

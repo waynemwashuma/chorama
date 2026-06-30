@@ -50,9 +50,7 @@ ambientLight.intensity = 0.15
 const textureLoader = new TextureLoader()
 const texture = textureLoader.load({
   paths: ["/images/uv.jpg"],
-  textureSettings: {
-    flipY: true
-  }
+  flipY: true
 })
 const box = new MeshMaterial3D(
   new CuboidMeshBuilder().build(),

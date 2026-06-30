@@ -39,9 +39,7 @@ const textureLoader = new TextureLoader()
 const loader = new OBJLoader()
 const texture = textureLoader.load({
   paths: ["/models/obj/pirate_girl/pirate_girl.png"],
-  textureSettings:{
-    flipY:true
-  }
+  flipY: true
 })
 const model = loader.load({
   paths: ["/models/obj/pirate_girl/pirate_girl.obj"],

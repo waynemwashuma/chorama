@@ -27,11 +27,13 @@ const textureLoader = new TextureLoader();
 
 const texture = textureLoader.load({
   paths: ["/images/uv.jpg"],
-  textureSettings: { flipY: true }
+  flipX: false,
+  flipY: true
 });
 ```
 
 Keep paths relative to your app's static/public asset root.
+`flipX` mirrors the image horizontally and `flipY` mirrors it vertically before upload.
 
 ## Step 3: Apply the Texture to a Material
 

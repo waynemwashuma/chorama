@@ -54,9 +54,7 @@ ambientLight.intensity = 0.15
 const textureLoader = new TextureLoader()
 const texture = textureLoader.load({
   paths: ["/images/uv.jpg"],
-  textureSettings: {
-    flipY: true
-  }
+  flipY: true
 })
 const mesh1 = new CuboidMeshBuilder().build()
 const mesh2 = new UVSphereMeshBuilder().build()

@@ -41,9 +41,7 @@ const camera2 = new Camera(renderTarget2)
 const textureLoader = new TextureLoader()
 const texture = textureLoader.load({
   paths: ["/images/uv.jpg"],
-  textureSettings: {
-    flipY: true
-  }
+  flipY: true
 })
 const day = textureLoader.load({
   paths: [
