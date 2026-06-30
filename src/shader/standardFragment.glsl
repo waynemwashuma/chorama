@@ -262,13 +262,5 @@ void main(){
   vec3 ambient_exitance = pbr_properties.albedo * ambient_light.color.rgb * ambient_light.intensity * pbr_properties.ambient_occlusion;
   vec3 final_color = emissive_exitance + ambient_exitance + exitance;
 
-  // tonemapping output
-  // this is temporary until a post processing step is introduced
-  final_color = final_color / (final_color + vec3(1.0));
-
-  // gamma correction
-  // this is temporary until a post processing step is introduced
-  final_color = quick_linear_to_sRGB(final_color); 
-
   fragment_color = vec4(final_color, pbr_properties.opacity);
 }
