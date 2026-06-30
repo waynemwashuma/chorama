@@ -60,7 +60,7 @@ function getTarget(camera, pool) {
     return pool.get({
       width: camera.target.canvas.width,
       height: camera.target.canvas.height,
-      color: [TextureFormat.RGBA8Unorm],
+      color: [TextureFormat.RGBA16Float],
       depth: TextureFormat.Depth24Plus,
     })
   }
