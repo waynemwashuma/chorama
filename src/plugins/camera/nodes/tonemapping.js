@@ -1,5 +1,5 @@
 /**@import { WebGLRenderDevice } from "../../../core/index.js" */
-import { ACESFilmicTonemapping, Camera, ReinhardToneMapping } from "../../../objects/index.js"
+import { ACESFilmicTonemapping, AgXTonemapping, Camera, ReinhardToneMapping } from "../../../objects/index.js"
 import { View, Views } from "../../../renderer/index.js"
 import { CanvasTarget, ImageRenderTarget } from "../../../rendertarget/index.js"
 import { CompareFunction, MeshVertexLayout, Shader } from "../../../core/index.js"
@@ -126,6 +126,8 @@ function getTonemappingPipeline(device, renderer, pipelineState, toneMapping) {
     fragmentShader.defines.set("REINHARD_TONEMAP", "1")
   } else if (toneMapping instanceof ACESFilmicTonemapping) {
     fragmentShader.defines.set("ACES_FILMIC_TONEMAP", "1")
+  } else if (toneMapping instanceof AgXTonemapping) {
+    fragmentShader.defines.set("AGX_TONEMAP", "1")
   }
 
   /**
@@ -172,6 +174,10 @@ function getToneMappingPipelineKey(toneMapping) {
     return "aces_filmic"
   }
 
+  if (toneMapping instanceof AgXTonemapping) {
+    return "agx"
+  }
+
   return "none"
 }
 
@@ -181,7 +187,8 @@ function getToneMappingPipelineKey(toneMapping) {
 function getToneMappingExposure(toneMapping) {
   if (
     toneMapping instanceof ReinhardToneMapping ||
-    toneMapping instanceof ACESFilmicTonemapping
+    toneMapping instanceof ACESFilmicTonemapping ||
+    toneMapping instanceof AgXTonemapping
   ) {
     return toneMapping.exposure
   }
