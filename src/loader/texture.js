@@ -19,11 +19,15 @@ export class TextureLoader extends Loader {
    * @override
    * @param {ArrayBuffer[]} buffers
    * @param {Texture} destination
+   * @param {{ mimeType?: string }} [settings]
    */
-  async parse(buffers, destination) {
+  async parse(buffers, destination, settings = {}) {
     let width = 0, height = 0
     const data = buffers.map(async (buffer) => {
-      const blob = await new Blob([buffer])
+      const blob = new Blob(
+        [buffer],
+        settings.mimeType ? { type: settings.mimeType } : undefined
+      )
       const bitmap = await createImageBitmap(blob)
       const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
       const ctx = canvas.getContext('2d')
@@ -81,5 +85,6 @@ export class TextureLoader extends Loader {
  * @typedef TextureLoadSettings
  * @property {string[]} paths
  * @property {TextureType} [type]
+ * @property {string} [mimeType]
  * @property {TextureSettings} [textureSettings]
  */

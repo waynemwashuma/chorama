@@ -10,9 +10,12 @@ import { SeparateAttributeData } from '../mesh/attributedata/separate.js';
 import { TextureLoader } from './texture.js';
 import { Texture, Sampler } from '../texture/index.js';
 import { assert } from '../utils/index.js';
-import { GlDataType, TextureFilter, TextureWrap, VertexFormat } from '../constants/index.js';
+import { GlDataType, TextureFilter, TextureType, TextureWrap, VertexFormat } from '../constants/index.js';
 
 const defaultMaterial = new StandardMaterial()
+const GLB_MAGIC = 0x46546C67
+const GLB_CHUNK_TYPE_JSON = 0x4E4F534A
+const GLB_CHUNK_TYPE_BIN = 0x004E4942
 /**
  * @extends {Loader<Object3D, GLTFLoadSettings>}
  */
@@ -52,41 +55,63 @@ export class GLTFLoader extends Loader {
         })
       }
 
+      if (typeof gltfTexture.bufferView === "number") {
+        const bufferView = gltf.bufferViews[gltfTexture.bufferView]
+        assert(bufferView, "GLTF image does not have a valid buffer view")
+
+        const imageBuffer = gltf.buffers[bufferView.buffer]
+        assert(imageBuffer, "GLTF image buffer view does not have a valid buffer")
+
+        const texture = new Texture({
+          type: TextureType.Texture2D
+        })
+        const slice = imageBuffer.slice(
+          bufferView.offset,
+          bufferView.offset + bufferView.length
+        )
+        await this.textureLoader.parse([slice], texture, {
+          mimeType: gltfTexture.mimeType
+        })
+        return texture
+      }
+
       throw "Unsupported gltf image setting"
     }))
     const samplers = gltf.samplers.map((gltfSampler) => {
       const sampler = new Sampler()
-      sampler.magnificationFilter = gltfSampler.magFilter || TextureFilter.Nearest
-      sampler.wrapS = gltfSampler.wrapS || TextureWrap.Clamp
-      sampler.wrapT = gltfSampler.wrapT || TextureWrap.Clamp
+      sampler.magnificationFilter = gltfSampler.magFilter || TextureFilter.Linear
+      sampler.wrapS = gltfSampler.wrapS || TextureWrap.Repeat
+      sampler.wrapT = gltfSampler.wrapT || TextureWrap.Repeat
 
-      switch (gltfSampler.minFilter) {
-        case WebGL2RenderingContext.NEAREST:
-          sampler.minificationFilter = TextureFilter.Nearest
-          sampler.mipmapFilter = undefined
-          break;
-        case WebGL2RenderingContext.LINEAR:
-          sampler.minificationFilter = TextureFilter.Linear
-          sampler.mipmapFilter = undefined
-          break;
-        case WebGL2RenderingContext.NEAREST_MIPMAP_NEAREST:
-          sampler.minificationFilter = TextureFilter.Nearest
-          sampler.mipmapFilter = TextureFilter.Nearest
-          break;
-        case WebGL2RenderingContext.NEAREST_MIPMAP_LINEAR:
-          sampler.minificationFilter = TextureFilter.Nearest
-          sampler.mipmapFilter = TextureFilter.Linear
-          break;
-        case WebGL2RenderingContext.LINEAR_MIPMAP_NEAREST:
-          sampler.minificationFilter = TextureFilter.Linear
-          sampler.mipmapFilter = TextureFilter.Nearest
-          break;
-        case WebGL2RenderingContext.LINEAR_MIPMAP_LINEAR:
-          sampler.minificationFilter = TextureFilter.Linear
-          sampler.mipmapFilter = TextureFilter.Linear
-          break;
-        default:
-          throw 'GLTF: Invalid minification sampler';
+      if (gltfSampler.minFilter !== undefined) {
+        switch (gltfSampler.minFilter) {
+          case WebGL2RenderingContext.NEAREST:
+            sampler.minificationFilter = TextureFilter.Nearest
+            sampler.mipmapFilter = undefined
+            break;
+          case WebGL2RenderingContext.LINEAR:
+            sampler.minificationFilter = TextureFilter.Linear
+            sampler.mipmapFilter = undefined
+            break;
+          case WebGL2RenderingContext.NEAREST_MIPMAP_NEAREST:
+            sampler.minificationFilter = TextureFilter.Nearest
+            sampler.mipmapFilter = TextureFilter.Nearest
+            break;
+          case WebGL2RenderingContext.NEAREST_MIPMAP_LINEAR:
+            sampler.minificationFilter = TextureFilter.Nearest
+            sampler.mipmapFilter = TextureFilter.Linear
+            break;
+          case WebGL2RenderingContext.LINEAR_MIPMAP_NEAREST:
+            sampler.minificationFilter = TextureFilter.Linear
+            sampler.mipmapFilter = TextureFilter.Nearest
+            break;
+          case WebGL2RenderingContext.LINEAR_MIPMAP_LINEAR:
+            sampler.minificationFilter = TextureFilter.Linear
+            sampler.mipmapFilter = TextureFilter.Linear
+            break;
+          default:
+            throw 'GLTF: Invalid minification sampler';
+        }
       }
       return sampler
     })
@@ -105,7 +130,7 @@ export class GLTFLoader extends Loader {
         }
         return [image, sampler]
       }
-      return [image, undefined]
+      return [image, createDefaultGLTFSampler()]
     })
     const materials = gltf.materials.map((gltfMaterial) => {
       const {
@@ -274,9 +299,10 @@ export class GLTFLoader extends Loader {
  * @param {string} baseUrl
  */
 async function loadGLTF(data, baseUrl) {
-  const json = arrayBufferToJSON(data)
-  const { buffers: urlBuffers } = json
-  const buffers = urlBuffers instanceof Array ? await loadBuffers(baseUrl, urlBuffers) : []
+  const { json, buffers: embeddedBuffers } = parseGLTFAsset(data)
+  const buffers = json.buffers instanceof Array
+    ? await loadBuffers(baseUrl, json.buffers, embeddedBuffers)
+    : embeddedBuffers
   const gltf = GLTF.deserialize(json)
   gltf.buffers = buffers
 
@@ -285,12 +311,30 @@ async function loadGLTF(data, baseUrl) {
 
 /**
  * @param {string} base
- * @param {{uri: string;}[]} uris
+ * @param {{uri?: string; byteLength?: number;}[]} uris
+ * @param {ArrayBuffer[]} [embeddedBuffers]
  */
-async function loadBuffers(base, uris) {
+async function loadBuffers(base, uris, embeddedBuffers = []) {
+  if (uris.length === 0) {
+    return embeddedBuffers.slice()
+  }
 
   return Promise.all(
-    uris.map(async (buffer) => {
+    uris.map(async (buffer, index) => {
+      if (typeof buffer.uri !== "string") {
+        const embeddedBuffer = embeddedBuffers[index]
+        if (embeddedBuffer !== undefined) {
+          if (
+            typeof buffer.byteLength === "number" &&
+            embeddedBuffer.byteLength < buffer.byteLength
+          ) {
+            throw new Error(`Embedded buffer ${index} is shorter than declared byteLength`)
+          }
+          return embeddedBuffer
+        }
+        throw new Error(`Missing URI for buffer ${index}`)
+      }
+
       const url = buffer.uri.startsWith('data') ?
         buffer.uri :
         new URL(buffer.uri, base).href
@@ -299,6 +343,121 @@ async function loadBuffers(base, uris) {
       return await response.arrayBuffer();
     })
   )
+}
+
+/**
+ * @returns {Sampler}
+ */
+function createDefaultGLTFSampler() {
+  const sampler = new Sampler()
+  sampler.magnificationFilter = TextureFilter.Linear
+  sampler.minificationFilter = TextureFilter.Linear
+  sampler.mipmapFilter = undefined
+  sampler.wrapS = TextureWrap.Repeat
+  sampler.wrapT = TextureWrap.Repeat
+  return sampler
+}
+
+/**
+ * @param {ArrayBuffer} data
+ * @returns {{ json: any, buffers: ArrayBuffer[] }}
+ */
+function parseGLTFAsset(data) {
+  if (isGLB(data)) {
+    return parseGLB(data)
+  }
+
+  return {
+    json: arrayBufferToJSON(data),
+    buffers: []
+  }
+}
+
+/**
+ * @param {ArrayBuffer} data
+ * @returns {boolean}
+ */
+function isGLB(data) {
+  if (data.byteLength < 12) {
+    return false
+  }
+
+  const view = new DataView(data)
+  return view.getUint32(0, true) === GLB_MAGIC
+}
+
+/**
+ * @param {ArrayBuffer} data
+ * @returns {{ json: any, buffers: ArrayBuffer[] }}
+ */
+function parseGLB(data) {
+  const view = new DataView(data)
+  if (view.byteLength < 12) {
+    throw new Error("Invalid GLB file")
+  }
+
+  const magic = view.getUint32(0, true)
+  const version = view.getUint32(4, true)
+  const length = view.getUint32(8, true)
+
+  if (magic !== GLB_MAGIC) {
+    throw new Error("Invalid GLB magic")
+  }
+
+  if (version !== 2) {
+    throw new Error(`Unsupported GLB version: ${version}`)
+  }
+
+  if (length !== data.byteLength) {
+    throw new Error("GLB length does not match file size")
+  }
+
+  const decoder = new TextDecoder("utf-8")
+  let offset = 12
+  let json = undefined
+  /** @type {ArrayBuffer | undefined} */
+  let binBuffer
+  let sawJsonChunk = false
+
+  while (offset + 8 <= data.byteLength) {
+    const chunkStart = offset
+    const chunkLength = view.getUint32(chunkStart, true)
+    const chunkType = view.getUint32(chunkStart + 4, true)
+    offset = chunkStart + 8
+
+    if (offset + chunkLength > data.byteLength) {
+      throw new Error("Invalid GLB chunk length")
+    }
+
+    const chunk = data.slice(offset, offset + chunkLength)
+    offset += chunkLength
+
+    if (chunkType === GLB_CHUNK_TYPE_JSON) {
+      if (sawJsonChunk) {
+        throw new Error("GLB file contains multiple JSON chunks")
+      }
+      if (chunkStart !== 12) {
+        throw new Error("GLB JSON chunk must be the first chunk")
+      }
+      sawJsonChunk = true
+      json = JSON.parse(decoder.decode(chunk))
+    } else if (chunkType === GLB_CHUNK_TYPE_BIN) {
+      binBuffer = chunk
+    }
+  }
+
+  if (offset !== data.byteLength) {
+    throw new Error("GLB file has trailing or truncated chunk data")
+  }
+
+  if (json === undefined) {
+    throw new Error("GLB file is missing a JSON chunk")
+  }
+
+  return {
+    json,
+    buffers: binBuffer !== undefined ? [binBuffer] : []
+  }
 }
 /**
  * @typedef {LoadSettings} GLTFLoadSettings
