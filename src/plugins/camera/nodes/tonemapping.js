@@ -1,5 +1,5 @@
 /**@import { WebGLRenderDevice } from "../../../core/index.js" */
-import { Camera, ReinhardToneMapping } from "../../../objects/index.js"
+import { ACESFilmicTonemapping, Camera, ReinhardToneMapping } from "../../../objects/index.js"
 import { View, Views } from "../../../renderer/index.js"
 import { CanvasTarget, ImageRenderTarget } from "../../../rendertarget/index.js"
 import { CompareFunction, MeshVertexLayout, Shader } from "../../../core/index.js"
@@ -28,18 +28,7 @@ export class TonemappingNode {
     assert(pipelineState, "TonemappingPipeline resource missing")
 
     const actualViews = views.items()
-    const pipeline = getTonemappingPipeline(renderDevice, renderer, pipelineState)
     const pass = renderDevice.beginRenderPass()
-    const mainTextureInfo = pipeline.uniforms.get("mainTexture")
-    const textureUnit = mainTextureInfo?.texture_unit
-    const exposureInfo = pipeline.uniforms.get("exposure")
-
-    assert(mainTextureInfo, "Tonemapping pipeline is missing the mainTexture uniform")
-    if (textureUnit === undefined) {
-      throw "Tonemapping pipeline is missing a mainTexture texture unit"
-    }
-
-    pass.setPipeline(pipeline)
 
     for (let i = 0; i < actualViews.length; i++) {
       const view = /**@type {View} */(actualViews[i])
@@ -54,9 +43,20 @@ export class TonemappingNode {
 
       const inputTarget = view.renderTarget
       const colorSource = inputTarget.color[0]
+      const toneMapping = view.object.toneMapping
 
       if (!colorSource) {
         continue
+      }
+
+      const pipeline = getTonemappingPipeline(renderDevice, renderer, pipelineState, toneMapping)
+      const mainTextureInfo = pipeline.uniforms.get("mainTexture")
+      const textureUnit = mainTextureInfo?.texture_unit
+      const exposureInfo = pipeline.uniforms.get("exposure")
+
+      assert(mainTextureInfo, "Tonemapping pipeline is missing the mainTexture uniform")
+      if (textureUnit === undefined) {
+        throw "Tonemapping pipeline is missing a mainTexture texture unit"
       }
 
       const outputTarget = targetPool.get({
@@ -79,14 +79,12 @@ export class TonemappingNode {
         outputTarget.scissor || outputTarget.viewport
       )
 
+      pass.setPipeline(pipeline)
       renderDevice.context.activeTexture(WebGL2RenderingContext.TEXTURE0 + textureUnit)
       renderDevice.context.bindTexture(source.type, source.inner)
 
       if (exposureInfo) {
-        const toneMapping = view.object.toneMapping
-        const exposure = toneMapping instanceof ReinhardToneMapping ? toneMapping.exposure : 1
-
-        renderDevice.context.uniform1f(exposureInfo.location, exposure)
+        renderDevice.context.uniform1f(exposureInfo.location, getToneMappingExposure(toneMapping))
       }
 
       pass.drawArrays(3)
@@ -103,14 +101,18 @@ export class TonemappingNode {
  * @param {WebGLRenderDevice} device
  * @param {import("../../../renderer/renderer.js").WebGLRenderer} renderer
  * @param {TonemappingPipeline} pipelineState
+ * @param {Camera["toneMapping"]} toneMapping
  */
-function getTonemappingPipeline(device, renderer, pipelineState) {
-  if (pipelineState.pipelineId !== undefined) {
-    const pipeline = renderer.caches.getRenderPipeline(pipelineState.pipelineId)
+function getTonemappingPipeline(device, renderer, pipelineState, toneMapping) {
+  const key = getToneMappingPipelineKey(toneMapping)
+  const pipelineId = pipelineState.pipelineIds.get(key)
+
+  if (pipelineId !== undefined) {
+    const pipeline = renderer.caches.getRenderPipeline(pipelineId)
     if (pipeline) {
       return pipeline
     }
-    pipelineState.pipelineId = undefined
+    pipelineState.pipelineIds.delete(key)
   }
 
   const vertexShader = new Shader({
@@ -120,7 +122,11 @@ function getTonemappingPipeline(device, renderer, pipelineState) {
     source: tonemappingFragment
   })
 
-  fragmentShader.defines.set("REINHARD_TONEMAP", "1")
+  if (toneMapping instanceof ReinhardToneMapping) {
+    fragmentShader.defines.set("REINHARD_TONEMAP", "1")
+  } else if (toneMapping instanceof ACESFilmicTonemapping) {
+    fragmentShader.defines.set("ACES_FILMIC_TONEMAP", "1")
+  }
 
   /**
    * @type {import("../../../core/index.js").WebGLRenderPipelineDescriptor}
@@ -150,6 +156,35 @@ function getTonemappingPipeline(device, renderer, pipelineState) {
   }
 
   const [pipeline, newId] = renderer.caches.createRenderPipeline(device, descriptor)
-  pipelineState.pipelineId = newId
+  pipelineState.pipelineIds.set(key, newId)
   return pipeline
+}
+
+/**
+ * @param {Camera["toneMapping"]} toneMapping
+ */
+function getToneMappingPipelineKey(toneMapping) {
+  if (toneMapping instanceof ReinhardToneMapping) {
+    return "reinhard"
+  }
+
+  if (toneMapping instanceof ACESFilmicTonemapping) {
+    return "aces_filmic"
+  }
+
+  return "none"
+}
+
+/**
+ * @param {Camera["toneMapping"]} toneMapping
+ */
+function getToneMappingExposure(toneMapping) {
+  if (
+    toneMapping instanceof ReinhardToneMapping ||
+    toneMapping instanceof ACESFilmicTonemapping
+  ) {
+    return toneMapping.exposure
+  }
+
+  return 1
 }

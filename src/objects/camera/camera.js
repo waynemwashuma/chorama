@@ -17,6 +17,20 @@ export class ReinhardToneMapping {
 	}
 }
 
+export class ACESFilmicTonemapping {
+	/**
+	 * @type {number}
+	 */
+	exposure
+
+	/**
+	 * @param {AcesFilmicTonemappingOptions} [options]
+	 */
+	constructor({ exposure = 1 } = {}) {
+		this.exposure = exposure
+	}
+}
+
 export class Camera extends Object3D {
 	near = 0.1
 	
@@ -33,7 +47,7 @@ export class Camera extends Object3D {
 
 	/**
 	 * Undefined means no camera tone mapping.
-	 * @type {ReinhardToneMapping | undefined}
+	 * @type {ReinhardToneMapping | ACESFilmicTonemapping | undefined}
 	 */
 	toneMapping = new ReinhardToneMapping()
 
@@ -77,5 +91,10 @@ export class Camera extends Object3D {
 
 /**
  * @typedef ReinhardToneMappingOptions
+ * @property {number} [exposure]
+ */
+
+/**
+ * @typedef AcesFilmicTonemappingOptions
  * @property {number} [exposure]
  */

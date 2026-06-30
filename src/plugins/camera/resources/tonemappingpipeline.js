@@ -1,6 +1,6 @@
 export class TonemappingPipeline {
   /**
-   * @type {number | undefined}
+   * @type {Map<string, number>}
    */
-  pipelineId
+  pipelineIds = new Map()
 }
