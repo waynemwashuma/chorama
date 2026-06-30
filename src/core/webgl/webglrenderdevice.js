@@ -53,6 +53,7 @@ export class WebGLRenderDevice {
     this.context = context
     this.extensions = new WebGLExtensions(this.context)
     this.extensions.get("OES_texture_float_linear")
+    this.extensions.get("EXT_color_buffer_float")
   }
 
   /**
