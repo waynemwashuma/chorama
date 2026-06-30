@@ -88,6 +88,18 @@ export class WebGLRenderPassEncoder {
     this.context.drawArrays(this.pipeline.topology, 0, mesh.count)
   }
 
+  /**
+   * Draws a non-indexed primitive stream without binding a mesh.
+   * @param {number} count
+   * @param {number} [first=0]
+   */
+  drawArrays(count, first = 0) {
+    assert(this.pipeline, "No active pipeline set on render pass encoder")
+
+    this.context.bindVertexArray(null)
+    this.context.drawArrays(this.pipeline.topology, first, count)
+  }
+
   end() {
     this.pipeline = undefined
     this.bindGroups.clear()
