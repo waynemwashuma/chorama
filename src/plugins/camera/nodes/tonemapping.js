@@ -1,5 +1,5 @@
 /**@import { WebGLRenderDevice } from "../../../core/index.js" */
-import { Camera } from "../../../objects/index.js"
+import { Camera, ReinhardToneMapping } from "../../../objects/index.js"
 import { View, Views } from "../../../renderer/index.js"
 import { CanvasTarget, ImageRenderTarget } from "../../../rendertarget/index.js"
 import { CompareFunction, MeshVertexLayout, Shader } from "../../../core/index.js"
@@ -32,6 +32,7 @@ export class TonemappingNode {
     const pass = renderDevice.beginRenderPass()
     const mainTextureInfo = pipeline.uniforms.get("mainTexture")
     const textureUnit = mainTextureInfo?.texture_unit
+    const exposureInfo = pipeline.uniforms.get("exposure")
 
     assert(mainTextureInfo, "Tonemapping pipeline is missing the mainTexture uniform")
     if (textureUnit === undefined) {
@@ -80,6 +81,14 @@ export class TonemappingNode {
 
       renderDevice.context.activeTexture(WebGL2RenderingContext.TEXTURE0 + textureUnit)
       renderDevice.context.bindTexture(source.type, source.inner)
+
+      if (exposureInfo) {
+        const toneMapping = view.object.toneMapping
+        const exposure = toneMapping instanceof ReinhardToneMapping ? toneMapping.exposure : 1
+
+        renderDevice.context.uniform1f(exposureInfo.location, exposure)
+      }
+
       pass.drawArrays(3)
 
       view.renderTarget = outputTarget

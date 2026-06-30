@@ -3,7 +3,19 @@ import { Object3D } from "../object3d.js"
 import { RenderTarget } from "../../rendertarget/index.js"
 import { PerspectiveProjection, Projection } from "./projection.js"
 
-export class ReinhardToneMapping { }
+export class ReinhardToneMapping {
+	/**
+	 * @type {number}
+	 */
+	exposure
+
+	/**
+	 * @param {ReinhardToneMappingOptions} [options]
+	 */
+	constructor({ exposure = 1 } = {}) {
+		this.exposure = exposure
+	}
+}
 
 export class Camera extends Object3D {
 	near = 0.1
@@ -62,3 +74,8 @@ export class Camera extends Object3D {
 		}
 	}
 }
+
+/**
+ * @typedef ReinhardToneMappingOptions
+ * @property {number} [exposure]
+ */
