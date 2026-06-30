@@ -66,6 +66,31 @@ vec3 agx_tonemapping(vec3 color, float exposure) {
   return clamp(exposed_color, 0.0, 1.0);
 }
 
+vec3 khronos_pbr_neutral_tonemapping(vec3 color, float exposure) {
+  const float start_compression = 0.8 - 0.04;
+  const float desaturation = 0.15;
+
+  vec3 exposed_color = color * exposure;
+  float x = min(exposed_color.r, min(exposed_color.g, exposed_color.b));
+  float offset = x < 0.08 ? x - 6.25 * x * x : 0.04;
+
+  exposed_color -= offset;
+
+  float peak = max(exposed_color.r, max(exposed_color.g, exposed_color.b));
+  if (peak < start_compression) {
+    return exposed_color;
+  }
+
+  float d = 1.0 - start_compression;
+  float new_peak = 1.0 - d * d / (peak + d - start_compression);
+
+  exposed_color *= new_peak / peak;
+
+  float g = 1.0 - 1.0 / (desaturation * (peak - new_peak) + 1.0);
+
+  return mix(exposed_color, vec3(new_peak), g);
+}
+
 void main() {
   vec4 source_color = texture(mainTexture, v_uv);
 
@@ -80,6 +105,10 @@ void main() {
   #elif defined(AGX_TONEMAP)
     vec3 mapped_color = source_color.rgb;
     mapped_color = agx_tonemapping(mapped_color, exposure);
+    fragment_color = vec4(quick_linear_to_sRGB(mapped_color), source_color.a);
+  #elif defined(KHRONOS_PBR_NEUTRAL_TONEMAP)
+    vec3 mapped_color = source_color.rgb;
+    mapped_color = khronos_pbr_neutral_tonemapping(mapped_color, exposure);
     fragment_color = vec4(quick_linear_to_sRGB(mapped_color), source_color.a);
   #else
     fragment_color = source_color;
