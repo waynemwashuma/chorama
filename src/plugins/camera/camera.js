@@ -1,7 +1,7 @@
 import { Plugin, SortViewsNode, WebGLRenderer } from "../../renderer/index.js";
-import { CameraOpaquePassNode, CameraViewNode, CanvasBlitNode } from "./nodes/index.js";
+import { CameraOpaquePassNode, CameraViewNode, CanvasBlitNode, TonemappingNode } from "./nodes/index.js";
 import { RenderTarget2DPool } from "./RenderTarget2DPool.js";
-import { CanvasBlitPipeline } from "./resources/index.js";
+import { CanvasBlitPipeline, TonemappingPipeline } from "./resources/index.js";
 
 export class CameraPlugin extends Plugin {
   /**
@@ -11,11 +11,14 @@ export class CameraPlugin extends Plugin {
   init(renderer) {
     renderer.setResource(new RenderTarget2DPool())
     renderer.setResource(new CanvasBlitPipeline())
+    renderer.setResource(new TonemappingPipeline())
     renderer.renderGraph.addNode(CameraViewNode.name, new CameraViewNode())
     renderer.renderGraph.addNode(CanvasBlitNode.name, new CanvasBlitNode())
     renderer.renderGraph.addNode(CameraOpaquePassNode.name, new CameraOpaquePassNode())
+    renderer.renderGraph.addNode(TonemappingNode.name, new TonemappingNode())
     renderer.renderGraph.addDependency(CameraViewNode.name, SortViewsNode.name)
     renderer.renderGraph.addDependency(SortViewsNode.name, CameraOpaquePassNode.name)
-    renderer.renderGraph.addDependency(CameraOpaquePassNode.name, CanvasBlitNode.name)
+    renderer.renderGraph.addDependency(CameraOpaquePassNode.name, TonemappingNode.name)
+    renderer.renderGraph.addDependency(TonemappingNode.name, CanvasBlitNode.name)
   }
 }
