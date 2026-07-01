@@ -109,10 +109,10 @@ export class WebGLRenderDevice {
   }
 
   /**
-   * @param {any} [_descriptor]
+   * @param {import("./descriptors.js").WebGLRenderPassDescriptor} descriptor
    */
-  beginRenderPass(_descriptor) {
-    return new WebGLRenderPassEncoder(this.context)
+  beginRenderPass(descriptor) {
+    return new WebGLRenderPassEncoder(this.context, this.drawBuffer, descriptor)
   }
 
   /**

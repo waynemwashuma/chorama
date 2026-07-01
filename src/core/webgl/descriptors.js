@@ -1,11 +1,62 @@
 import { BufferUsage, BufferType, TextureType, TextureFormat, CullFace, FrontFaceDirection, PrimitiveTopology } from "../../constants/index.js";
 import { Vector3 } from "../../math/index.js";
+import { ViewRectangle } from "../../utils/index.js";
 import { CompareFunction } from "../constants.js";
 import { MeshVertexLayout } from "../layouts/index.js";
 import { BlendParams, GPUTexture } from "../resources/index.js";
 import { Shader } from "../shader.js";
 /** @import { GPUBuffer } from "../resources/index.js" */
 /** @import { Sampler } from "../../texture/index.js" */
+
+/**
+ * @typedef {"load" | "clear"} WebGLLoadOp
+ */
+
+/**
+ * @typedef {"store" | "discard"} WebGLStoreOp
+ */
+
+/**
+ * @typedef {readonly [number, number, number, number]} WebGLColorValue
+ */
+
+/**
+ * WebGPU-shaped render pass descriptor. Texture attachments are bound to the
+ * render device's reusable draw framebuffer at pass begin.
+ * @typedef WebGLRenderPassDescriptor
+ * @property {number} width
+ * @property {number} height
+ * @property {boolean} [defaultFramebuffer]
+ * @property {readonly (WebGLRenderPassColorAttachment | null)[]} colorAttachments
+ * @property {WebGLRenderPassDepthStencilAttachment} [depthStencilAttachment]
+ * @property {ViewRectangle} [viewport]
+ * @property {ViewRectangle} [scissor]
+ */
+
+/**
+ * @typedef WebGLRenderPassColorAttachment
+ * @property {GPUTexture} [texture]
+ * @property {number} [mipLevel]
+ * @property {number} [layer]
+ * @property {WebGLLoadOp} loadOp
+ * @property {WebGLStoreOp} storeOp
+ * @property {WebGLColorValue} [clearValue]
+ */
+
+/**
+ * @typedef WebGLRenderPassDepthStencilAttachment
+ * @property {GPUTexture} [texture]
+ * @property {number} [mipLevel]
+ * @property {number} [layer]
+ * @property {number} [depthClearValue]
+ * @property {WebGLLoadOp} [depthLoadOp]
+ * @property {WebGLStoreOp} [depthStoreOp]
+ * @property {boolean} [depthReadOnly]
+ * @property {number} [stencilClearValue]
+ * @property {WebGLLoadOp} [stencilLoadOp]
+ * @property {WebGLStoreOp} [stencilStoreOp]
+ * @property {boolean} [stencilReadOnly]
+ */
 
 /**
  * @typedef WebGLBindGroupDescriptor
