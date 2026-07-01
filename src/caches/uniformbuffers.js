@@ -1,5 +1,7 @@
+/** @import { WebGLRenderDevice } from "../core/index.js" */
+/** @import { GPUBuffer } from "../core/resources/index.js" */
+import { BufferType, BufferUsage } from "../constants/index.js"
 import { UniformBufferLayout } from "../core/layouts/uniformbuffer.js"
-
 
 export class UniformBufferPointAllocator {
   number = 0
@@ -21,24 +23,30 @@ export class UniformBuffers {
   allocator = new UniformBufferPointAllocator()
 
   /**
-   * @param {WebGL2RenderingContext} gl 
-   * @param {string} name 
+   * @param {WebGLRenderDevice} device
+   * @param {string} name
    * @param {UniformBufferLayout} layout
-   * @returns {UniformBuffer} 
+   * @returns {UniformBuffer}
    */
-  set(gl, name, layout) {
+  set(device, name, layout) {
     const index = this.allocator.reserve()
-    return this.setAtPoint(gl, name, index, layout)
+    return this.setAtPoint(device, name, index, layout)
   }
 
   /**
-   * @param {WebGL2RenderingContext} gl
+   * @param {WebGLRenderDevice} device
    * @param {string} name
    * @param {number} index
    * @param {UniformBufferLayout} layout
+   * @returns {UniformBuffer}
    */
-  setAtPoint(gl, name, index, layout) {
-    const ubo = new UniformBuffer(gl, index, layout.size)
+  setAtPoint(device, name, index, layout) {
+    const buffer = device.createBuffer({
+      type: BufferType.Uniform,
+      usage: BufferUsage.Dynamic,
+      size: layout.size
+    })
+    const ubo = new UniformBuffer(device, index, buffer)
     this.list.set(name, ubo)
 
     return ubo
@@ -52,12 +60,12 @@ export class UniformBuffers {
   }
 
   /**
-   * @param {WebGL2RenderingContext} gl
+   * @param {WebGLRenderDevice} device
    * @param {string} name
    * @param {UniformBufferLayout} layout
    * @returns {UniformBuffer}
    */
-  getorSet(gl, name, layout) {
+  getorSet(device, name, layout) {
     const ubo = this.get(name)
 
     if (ubo) {
@@ -66,39 +74,53 @@ export class UniformBuffers {
       }
 
       // TODO: Delete the old buffer, we are leaking gpu memory here
-      return this.setAtPoint(gl, name, ubo.point, layout)
+      return this.setAtPoint(device, name, ubo.point, layout)
     }
 
-    return this.set(gl, name, layout)
+    return this.set(device, name, layout)
   }
 }
-/**
- * @param {WebGL2RenderingContext} gl
- */
+
 export class UniformBuffer {
   /**
-   * @param {WebGL2RenderingContext} gl
-   * @param {number} point
-   * @param {number} bufSize
+   * @readonly
+   * @type {number}
    */
-  constructor(gl, point, bufSize) {
-    this.point = point;
-    this.buffer = gl.createBuffer();
-    this.size = bufSize
+  point
 
-    gl.bindBuffer(gl.UNIFORM_BUFFER, this.buffer)
-    gl.bufferData(gl.UNIFORM_BUFFER, bufSize, gl.DYNAMIC_DRAW)
-    gl.bindBuffer(gl.UNIFORM_BUFFER, null)
-    gl.bindBufferBase(gl.UNIFORM_BUFFER, point, this.buffer)
+  /**
+   * @readonly
+   * @type {GPUBuffer}
+   */
+  buffer
+
+  /**
+   * @readonly
+   * @type {number}
+   */
+  size
+
+  /**
+   * @param {WebGLRenderDevice} device
+   * @param {number} point
+   * @param {GPUBuffer} buffer
+   */
+  constructor(device, point, buffer) {
+    this.point = point
+    this.buffer = buffer
+    this.size = buffer.size
+
+    device.context.bindBufferBase(buffer.type, point, buffer.inner)
   }
+
   /**
    * @param {WebGL2RenderingContext} gl
    * @param {ArrayBuffer} data
    */
   update(gl, data) {
-    gl.bindBuffer(gl.UNIFORM_BUFFER, this.buffer);
-    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, data);
-    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
-    return this;
+    gl.bindBuffer(this.buffer.type, this.buffer.inner)
+    gl.bufferSubData(this.buffer.type, 0, data)
+    gl.bindBuffer(this.buffer.type, null)
+    return this
   }
 }
