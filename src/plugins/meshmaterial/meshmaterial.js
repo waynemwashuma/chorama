@@ -1,14 +1,11 @@
 /**@import { Brand } from '../../utils/index.js' */
-/**@import { Defaults } from '../../renderer/index.js' */
-/**@import { GPUTexture, WebGLRenderPipeline, WebGLRenderPipelineDescriptor } from '../../core/index.js' */
+/**@import { WebGLRenderPipeline, WebGLRenderPipelineDescriptor } from '../../core/index.js' */
 import { assert } from '../../utils/index.js'
-import { MeshVertexLayout, Shader, Uniform, WebGLRenderDevice } from "../../core/index.js";
+import { MeshVertexLayout, Shader, WebGLRenderDevice } from "../../core/index.js";
 import { Mesh, Attribute } from "../../mesh/index.js";
 import { MeshMaterial3D, Object3D } from "../../objects/index.js";
 import { Plugin, RenderItem, SortViewsNode, WebGLRenderer } from "../../renderer/index.js";
-import { Sampler, Texture } from "../../texture/index.js";
-import { PrimitiveTopology, TextureFilter, TextureFormat } from '../../constants/index.js';
-import { Caches } from '../../caches/index.js';
+import { PrimitiveTopology, TextureFormat, TextureType } from '../../constants/index.js';
 import { ShadowMap } from '../shadow/index.js';
 import { CameraViewNode } from '../camera/index.js';
 import { MeshMaterialNode } from './nodes/index.js';
@@ -21,7 +18,6 @@ export class MeshMaterialPlugin extends Plugin {
    */
   init(renderer) {
     renderer.setResource(new MeshMaterialPipelines())
-    renderer.uniformBinders.set(MeshMaterial3D.name, uploadUniforms)
     renderer.renderGraph.addNode(MeshMaterialNode.name, new MeshMaterialNode())
     renderer.renderGraph.addDependency(CameraViewNode.name, MeshMaterialNode.name)
     renderer.renderGraph.addDependency(MeshMaterialNode.name, SortViewsNode.name)
@@ -88,21 +84,11 @@ export function createMeshMaterialRenderItem(object, device, renderer, pipelines
       return newId
     })
 
-  const uniforms = new MaterialBindGroup({
-    textures: object.material.getTextures(),
-    data: material.getData(),
-  })
-
-  if (object.skin) {
-    object.skin.bindMatrix.copy(object.transform.world)
-    object.skin.inverseBindMatrix.copy(object.skin.bindMatrix).invert()
-    object.skin.updateTexture()
-    const texture = caches.getTexture(device, object.skin.boneTexture)
-
-    uniforms.boneTransforms = texture
-  }
+  const pipeline = caches.getRenderPipeline(pipelineId)
+  const bindGroup = pipeline ? createMaterialBindGroup(device, renderer, pipeline, material, object) : undefined
   const item = new RenderItem({
-    uniforms,
+    uniforms: {},
+    bindGroup,
     mesh: gpuMesh,
     pipelineId,
     tag: MeshMaterial3D.name,
@@ -112,75 +98,206 @@ export function createMeshMaterialRenderItem(object, device, renderer, pipelines
   return item
 }
 
-class MaterialBindGroup {
-  /**
-   * @type {GPUTexture | undefined} 
-   */
-  boneTransforms
-
-  /**
-   * @type {[string, number, Texture | undefined, Sampler | undefined][]}
-   */
-  textures
-  /**
-   * @type {ArrayBuffer}
-   */
-  data
-  /**
-   * @param {MaterialBindGroupOptions} options 
-   */
-  constructor({
-    textures,
-    data,
-    boneTransforms
-  }) {
-    this.boneTransforms = boneTransforms
-    this.data = data
-    this.textures = textures
-  }
-}
-
-/**
- * @typedef MaterialBindGroupOptions
- * @property {[string, number, Texture | undefined, Sampler | undefined][]} textures
- * @property {ArrayBuffer} data
- * @property {GPUTexture} [boneTransforms]
- */
-
 /**
  * @param {WebGLRenderDevice} device
  * @param {WebGLRenderer} renderer
  * @param {WebGLRenderPipeline} pipeline
- * @param {MaterialBindGroup} bindGroup
+ * @param {import("../../material/index.js").RawMaterial} material
+ * @param {MeshMaterial3D} object
+ * @returns {import("../../core/index.js").WebGLBindGroup | undefined}
  */
-function uploadUniforms(device, renderer, pipeline, bindGroup) {
+function createMaterialBindGroup(device, renderer, pipeline, material, object) {
   const { caches, defaults } = renderer
+  const bindings = []
+  const materialBlockLayout = pipeline.uniformBlocks.get("MaterialBlock")
+  let binding = 0
+
+  if (materialBlockLayout) {
+    const materialBuffer = caches.uniformBuffers.getorSet(device, "MaterialBlock", materialBlockLayout)
+
+    materialBuffer.update(device.context, material.getData())
+    bindings.push(createBufferBinding(binding++, "MaterialBlock", materialBuffer, materialBlockLayout.size))
+  }
+
+  for (const [name, _unusedBinding, texture, sampler] of material.getTextures()) {
+    if (!hasActiveTextureUniform(pipeline, name)) {
+      continue
+    }
+
+    const sourceTexture = texture ?? defaults.texture2D
+    const gpuTexture = caches.getTexture(device, sourceTexture)
+
+    bindings.push(createTextureBinding(
+      binding++,
+      name,
+      gpuTexture,
+      sampler ?? defaults.textureSampler,
+      sourceTexture.type,
+      sourceTexture.format
+    ))
+  }
+
   const shadowmap = renderer.getResource(ShadowMap)
-  const shadowInfo = pipeline.uniforms.get('shadow_atlas')
-  const boneMatricesInfo = pipeline.uniforms.get("bone_transforms")
-  const materialBuffer = caches.uniformBuffers.get('MaterialBlock')
 
-  if (shadowmap && shadowInfo && shadowInfo.texture_unit !== undefined) {
-    device.context.activeTexture(WebGL2RenderingContext.TEXTURE0 + shadowInfo.texture_unit)
+  if (shadowmap && hasActiveTextureUniform(pipeline, "shadow_atlas")) {
+    const gpuTexture = caches.getTexture(device, shadowmap.shadowAtlas)
 
-    const texture = caches.getTexture(device, shadowmap.shadowAtlas)
-    device.context.bindTexture(shadowmap.shadowAtlas.type, texture.inner)
-    updateTextureSampler(device.context, shadowmap.shadowAtlas, shadowmap.sampler)
+    bindings.push(createTextureBinding(
+      binding++,
+      "shadow_atlas",
+      gpuTexture,
+      shadowmap.sampler,
+      shadowmap.shadowAtlas.type,
+      shadowmap.shadowAtlas.format
+    ))
   }
 
-  if (boneMatricesInfo && boneMatricesInfo.texture_unit !== undefined && bindGroup.boneTransforms) {
-    device.context.activeTexture(WebGL2RenderingContext.TEXTURE0 + boneMatricesInfo.texture_unit)
+  if (object.skin && hasActiveTextureUniform(pipeline, "bone_transforms")) {
+    object.skin.updateTexture()
 
-    device.context.bindTexture(bindGroup.boneTransforms.type, bindGroup.boneTransforms.inner)
-    device.context.texParameteri(bindGroup.boneTransforms.type, WebGL2RenderingContext.TEXTURE_MIN_FILTER, WebGL2RenderingContext.LINEAR)
+    const gpuTexture = caches.getTexture(device, object.skin.boneTexture)
+
+    bindings.push(createTextureBinding(
+      binding++,
+      "bone_transforms",
+      gpuTexture,
+      defaults.textureSampler,
+      object.skin.boneTexture.type,
+      object.skin.boneTexture.format
+    ))
   }
 
-  if (materialBuffer) {
-    materialBuffer.update(device.context, bindGroup.data)
+  if (bindings.length === 0) {
+    return undefined
   }
 
-  uploadTextures(device, bindGroup.textures, pipeline.uniforms, caches, defaults)
+  let bindGroupLayout = pipeline.layout.getBindGroupLayout(0)
+
+  if (!bindGroupLayout) {
+    bindGroupLayout = device.createBindGroupLayout({
+      label: `${material.constructor.name}BindGroupLayout`,
+      entries: bindings.map((binding) => binding.layout)
+    })
+    pipeline.layout = device.createPipelineLayout({
+      label: `${material.constructor.name}PipelineLayout`,
+      bindGroupLayouts: [bindGroupLayout]
+    })
+  }
+
+  return device.createBindGroup({
+    label: `${material.constructor.name}BindGroup`,
+    layout: bindGroupLayout,
+    entries: bindings.map((binding) => binding.entry)
+  })
 }
+
+/**
+ * @param {number} binding
+ * @param {string} name
+ * @param {import("../../caches/uniformbuffers.js").UniformBuffer} buffer
+ * @param {number} minBindingSize
+ * @returns {{
+ *   binding: number,
+ *   layout: import("../../core/layouts/bindgroup.js").WebGLBindGroupLayoutEntry,
+ *   entry: import("../../core/webgl/descriptors.js").WebGLBindGroupEntry
+ * }}
+ */
+function createBufferBinding(binding, name, buffer, minBindingSize) {
+  return {
+    binding,
+    layout: {
+      binding,
+      name,
+      visibility: 0,
+      buffer: {
+        type: /** @type {"uniform"} */ ("uniform"),
+        minBindingSize
+      }
+    },
+    entry: {
+      binding,
+      resource: buffer
+    }
+  }
+}
+
+/**
+ * @param {number} binding
+ * @param {string} name
+ * @param {import("../../core/resources/index.js").GPUTexture} texture
+ * @param {import("../../texture/index.js").Sampler} sampler
+ * @param {TextureType} type
+ * @param {TextureFormat} format
+ * @returns {{
+ *   binding: number,
+ *   layout: import("../../core/layouts/bindgroup.js").WebGLBindGroupLayoutEntry,
+ *   entry: import("../../core/webgl/descriptors.js").WebGLBindGroupEntry
+ * }}
+ */
+function createTextureBinding(binding, name, texture, sampler, type, format) {
+  return {
+    binding,
+    layout: {
+      binding,
+      name,
+      visibility: 0,
+      texture: {
+        viewDimension: textureViewDimensionFromType(type),
+        sampleType: textureSampleTypeFromFormat(format)
+      }
+    },
+    entry: {
+      binding,
+      resource: {
+        texture,
+        sampler
+      }
+    }
+  }
+}
+
+/**
+ * @param {WebGLRenderPipeline} pipeline
+ * @param {string} name
+ */
+function hasActiveTextureUniform(pipeline, name) {
+  return pipeline.uniforms.get(name)?.texture_unit !== undefined
+}
+
+/**
+ * @param {TextureType} type
+ * @returns {"2d" | "2d-array" | "cube" | "3d"}
+ */
+function textureViewDimensionFromType(type) {
+  switch (type) {
+    case TextureType.Texture2DArray:
+      return "2d-array"
+    case TextureType.TextureCubeMap:
+      return "cube"
+    case TextureType.Texture3D:
+      return "3d"
+    default:
+      return "2d"
+  }
+}
+
+/**
+ * @param {TextureFormat} format
+ * @returns {"float" | "depth"}
+ */
+function textureSampleTypeFromFormat(format) {
+  switch (format) {
+    case TextureFormat.Depth16Unorm:
+    case TextureFormat.Depth24Plus:
+    case TextureFormat.Depth24PlusStencil8:
+    case TextureFormat.Depth32Float:
+    case TextureFormat.Depth32FloatStencil8:
+      return "depth"
+    default:
+      return "float"
+  }
+}
+
 /**
  * @enum {bigint}
  */
@@ -198,7 +315,7 @@ export const MeshKey = /**@type {const}*/({
 })
 
 /**
- * @param {Mesh} mesh 
+ * @param {Mesh} mesh
  * @returns {bigint}
  */
 function keyFromTopology(mesh) {
@@ -246,79 +363,6 @@ function createPipelineBitsFromMesh(mesh, object) {
 }
 
 /**
- * @param {WebGL2RenderingContext} context
- * @param {Texture} texture
- * @param {Sampler} sampler
- */
-function updateTextureSampler(context, texture, sampler) {
-  const lod = sampler.lod
-  const anisotropyExtenstion = context.getExtension("EXT_texture_filter_anisotropic")
-
-  context.texParameteri(texture.type, context.TEXTURE_MAG_FILTER, sampler.magnificationFilter)
-  context.texParameteri(texture.type, context.TEXTURE_WRAP_S, sampler.wrapS)
-  context.texParameteri(texture.type, context.TEXTURE_WRAP_T, sampler.wrapT)
-  context.texParameteri(texture.type, context.TEXTURE_WRAP_R, sampler.wrapR)
-
-  if (lod) {
-    context.texParameteri(texture.type, context.TEXTURE_MIN_LOD, lod.min)
-    context.texParameteri(texture.type, context.TEXTURE_MAX_LOD, lod.max)
-  }
-
-  if (sampler.mipmapFilter !== undefined) {
-    if (sampler.minificationFilter === TextureFilter.Linear) {
-      if (sampler.mipmapFilter === TextureFilter.Linear) {
-        context.texParameteri(texture.type, context.TEXTURE_MIN_FILTER, context.LINEAR_MIPMAP_LINEAR);
-      } else if (sampler.mipmapFilter === TextureFilter.Nearest) {
-        context.texParameteri(texture.type, context.TEXTURE_MIN_FILTER, context.LINEAR_MIPMAP_NEAREST);
-      }
-    } else if (sampler.minificationFilter === TextureFilter.Nearest) {
-      if (sampler.mipmapFilter === TextureFilter.Linear) {
-        context.texParameteri(texture.type, context.TEXTURE_MIN_FILTER, context.NEAREST_MIPMAP_LINEAR);
-      } else if (sampler.mipmapFilter === TextureFilter.Nearest) {
-        context.texParameteri(texture.type, context.TEXTURE_MIN_FILTER, context.NEAREST_MIPMAP_NEAREST);
-      }
-    }
-  } else {
-    if (sampler.minificationFilter === TextureFilter.Nearest) {
-      context.texParameteri(texture.type, context.TEXTURE_MIN_FILTER, context.NEAREST)
-    } else if (sampler.minificationFilter === TextureFilter.Linear) {
-      context.texParameteri(texture.type, context.TEXTURE_MIN_FILTER, context.LINEAR)
-    }
-  }
-  if (anisotropyExtenstion) {
-    context.texParameterf(texture.type, anisotropyExtenstion.TEXTURE_MAX_ANISOTROPY_EXT, sampler.anisotropy)
-  }
-
-  if (sampler.compare !== undefined) {
-    context.texParameteri(texture.type, context.TEXTURE_COMPARE_MODE, context.COMPARE_REF_TO_TEXTURE);
-    context.texParameteri(texture.type, context.TEXTURE_COMPARE_FUNC, sampler.compare)
-  } else {
-    context.texParameteri(texture.type, context.TEXTURE_COMPARE_MODE, context.NONE);
-  }
-}
-
-/**
- * @param {WebGLRenderDevice} device
- * @param {[string, number, Texture | undefined, Sampler | undefined][]} textures
- * @param {ReadonlyMap<string, Uniform>} uniforms
- * @param {Caches} caches
- * @param {Defaults} defaults
- */
-function uploadTextures(device, textures, uniforms, caches, defaults) {
-  for (let i = 0; i < textures.length; i++) {
-    const [name, _, texture = defaults.texture2D, sampler = defaults.textureSampler] =
-    /**@type {[string, number, Texture | undefined, Sampler | undefined]}*/(textures[i])
-    const textureInfo = uniforms.get(name)
-
-    if (textureInfo && textureInfo.texture_unit !== undefined) {
-      const gpuTexture = caches.getTexture(device, texture)
-      device.context.activeTexture(WebGL2RenderingContext.TEXTURE0 + textureInfo.texture_unit)
-      device.context.bindTexture(texture.type, gpuTexture.inner)
-      updateTextureSampler(device.context, texture, sampler)
-    }
-  }
-}
-/**
  * @param {MeshVertexLayout} meshLayout
  * @param {bigint} meshBits
  * @param {ReadonlyMap<string, string>} globalDefines
@@ -331,15 +375,15 @@ function getShaderDefs(meshLayout, meshBits, globalDefines) {
   }
 
   if (meshLayout.hasAttribute(Attribute.UV)) {
-    shaderdefs.push(['VERTEX_UVS', ''])
+    shaderdefs.push(["VERTEX_UVS", ""])
   }
 
   if (meshLayout.hasAttribute(Attribute.Normal)) {
-    shaderdefs.push(['VERTEX_NORMALS', ''])
+    shaderdefs.push(["VERTEX_NORMALS", ""])
   }
 
   if (meshLayout.hasAttribute(Attribute.Tangent)) {
-    shaderdefs.push(['VERTEX_TANGENTS', ''])
+    shaderdefs.push(["VERTEX_TANGENTS", ""])
   }
 
   for (const [name, value] of globalDefines) {
@@ -357,6 +401,7 @@ export const GeneralPipelineKeyShiftBits = /**@type {const}*/({
   MeshBits: 15n,
   MaterialBits: 47n
 })
+
 /**
  * @param {number} layoutHash
  * @param {bigint} meshBits
