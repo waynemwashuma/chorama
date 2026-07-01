@@ -1,9 +1,10 @@
 /**@import { WebGLRenderPipelineDescriptor } from '../../core/index.js' */
 import { CompareFunction, MeshVertexLayout, Shader, WebGLRenderDevice } from "../../core/index.js";
 import { Affine3 } from "../../math/index.js";
-import { PrimitiveTopology, TextureFormat } from "../../constants/index.js";
-import { Bone3D, Object3D, SkeletonHelper } from "../../objects/index.js";
-import { Plugin, WebGLRenderer } from "../../renderer/index.js";
+import { PrimitiveTopology, TextureFormat, hasDepthComponent, hasStencilComponent } from "../../constants/index.js";
+import { Bone3D, Camera, Object3D, SkeletonHelper } from "../../objects/index.js";
+import { Plugin, Views, WebGLRenderer } from "../../renderer/index.js";
+import { ImageRenderTarget } from "../../rendertarget/index.js";
 import { skeletonFragment, skeletonVertex } from "../../shader/index.js";
 import { Texture } from "../../texture/index.js";
 
@@ -29,8 +30,6 @@ export class SkeletonHelperPlugin extends Plugin {
     const modelInfo = pipeline.uniforms.get("model")
     const parentInfo = pipeline.uniforms.get("parent_index")
     const childInfo = pipeline.uniforms.get("child_index")
-    const pass = device.beginRenderPass()
-    pass.setPipeline(pipeline)
 
     if (
       !transformsInfo || transformsInfo.texture_unit === undefined ||
@@ -39,6 +38,50 @@ export class SkeletonHelperPlugin extends Plugin {
       return
     }
 
+    const view = renderer.getResource(Views)?.items().find((view) => view.tag === Camera.name)
+
+    if (!view) {
+      return
+    }
+
+    if (!(view.renderTarget instanceof ImageRenderTarget)) {
+      return
+    }
+
+    const renderTarget = view.renderTarget
+    const depthTexture = renderTarget.depthTexture ? caches.getTexture(device, renderTarget.depthTexture) : undefined
+    const depthStencilAttachment = depthTexture ? /** @type {import("../../core/index.js").WebGLRenderPassDepthStencilAttachment} */ ({
+      texture: depthTexture,
+      layer: renderTarget.layer
+    }) : undefined
+
+    if (depthTexture && depthStencilAttachment && hasDepthComponent(depthTexture.actualFormat)) {
+      depthStencilAttachment.depthLoadOp = "load"
+      depthStencilAttachment.depthStoreOp = "store"
+    }
+
+    if (depthTexture && depthStencilAttachment && hasStencilComponent(depthTexture.actualFormat)) {
+      depthStencilAttachment.stencilLoadOp = "load"
+      depthStencilAttachment.stencilStoreOp = "store"
+    }
+
+    renderTarget.changed()
+
+    const pass = device.beginRenderPass({
+      width: renderTarget.width,
+      height: renderTarget.height,
+      colorAttachments: renderTarget.color.map((texture) => texture ? {
+        texture: caches.getTexture(device, texture),
+        layer: renderTarget.layer,
+        loadOp: /** @type {import("../../core/index.js").WebGLLoadOp} */ ("load"),
+        storeOp: /** @type {import("../../core/index.js").WebGLStoreOp} */ ("store")
+      } : null),
+      depthStencilAttachment,
+      viewport: renderTarget.viewport,
+      scissor: renderTarget.scissor || renderTarget.viewport
+    })
+
+    pass.setPipeline(pipeline)
     updateDataTexture(boneTexture, bones.map((bone) => bone.transform.world))
 
     const transformsTexture = caches.getTexture(device, boneTexture)
@@ -59,7 +102,7 @@ export class SkeletonHelperPlugin extends Plugin {
             const parentIndex = parent.index
             device.context.uniform1ui(parentInfo.location, parentIndex)
             device.context.uniform1ui(childInfo.location, childIndex)
-            device.context.drawArrays(PrimitiveTopology.Lines, 0, 2)
+            pass.draw(2)
           }
         }
       }

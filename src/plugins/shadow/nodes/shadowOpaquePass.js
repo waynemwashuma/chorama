@@ -2,6 +2,8 @@ import { Camera } from "../../../objects/index.js"
 import { RenderItem, Views } from "../../../renderer/index.js"
 import { assert } from "../../../utils/index.js"
 import { Affine3 } from "../../../math/index.js"
+import { ImageRenderTarget } from "../../../rendertarget/index.js"
+import { hasDepthComponent, hasStencilComponent } from "../../../constants/index.js"
 
 /**
  * @param {import("../../../renderer/index.js").View} view
@@ -14,17 +16,55 @@ function renderItems(view, device, renderer) {
 
   const context = device.context
   const caches = renderer.caches
-  const { clearColor, clearDepth, clearStencil, viewport, scissor } = renderTarget
 
-  const framebuffer = caches.getFrameBuffer(device, renderTarget)
-  framebuffer.setViewport(context, viewport, scissor || viewport)
-  framebuffer.clear(context, clearColor, clearDepth, clearStencil)
+  if (!(renderTarget instanceof ImageRenderTarget)) {
+    throw "Shadow opaque pass expects an image render target"
+  }
+
+  const imageTarget = renderTarget
+
+  imageTarget.changed()
+
+  const clearColor = imageTarget.clearColor
+  const clearValue = clearColor ? /** @type {const} */ ([clearColor.r, clearColor.g, clearColor.b, clearColor.a]) : undefined
+  const depthTexture = imageTarget.depthTexture ? caches.getTexture(device, imageTarget.depthTexture) : undefined
+  const depthStencilAttachment = depthTexture ? /** @type {import("../../../core/index.js").WebGLRenderPassDepthStencilAttachment} */ ({
+    texture: depthTexture,
+    layer: imageTarget.layer
+  }) : undefined
+
+  if (depthTexture && depthStencilAttachment && hasDepthComponent(depthTexture.actualFormat)) {
+    depthStencilAttachment.depthLoadOp = imageTarget.clearDepth !== undefined ? "clear" : "load"
+    depthStencilAttachment.depthStoreOp = "store"
+    depthStencilAttachment.depthClearValue = imageTarget.clearDepth
+  }
+
+  if (depthTexture && depthStencilAttachment && hasStencilComponent(depthTexture.actualFormat)) {
+    depthStencilAttachment.stencilLoadOp = imageTarget.clearStencil !== undefined ? "clear" : "load"
+    depthStencilAttachment.stencilStoreOp = "store"
+    depthStencilAttachment.stencilClearValue = imageTarget.clearStencil
+  }
+
+  const pass = device.beginRenderPass({
+    width: imageTarget.width,
+    height: imageTarget.height,
+    colorAttachments: imageTarget.color.map((texture) => texture ? {
+      texture: caches.getTexture(device, texture),
+      layer: imageTarget.layer,
+      loadOp: clearValue ? "clear" : "load",
+      storeOp: "store",
+      clearValue
+    } : null),
+    depthStencilAttachment,
+    viewport: imageTarget.viewport,
+    scissor: imageTarget.scissor || imageTarget.viewport
+  })
 
   if (!opaquePhase) {
+    pass.end()
     return
   }
 
-  const pass = device.beginRenderPass()
   for (let i = 0; i < opaquePhase.length; i++) {
     // SAFETY: List is dense
     const { pipelineId, mesh, transform } = /**@type {RenderItem}*/(opaquePhase[i])

@@ -28,7 +28,6 @@ export class CanvasBlitNode {
 
     const actualViews = views.items()
     const pipeline = getCanvasBlitPipeline(renderDevice, renderer, pipelineState)
-    const pass = renderDevice.beginRenderPass()
     const mainTextureInfo = pipeline.uniforms.get("mainTexture")
     const textureUnit = mainTextureInfo?.texture_unit
 
@@ -36,8 +35,6 @@ export class CanvasBlitNode {
     if (textureUnit === undefined) {
       throw "Canvas blit pipeline is missing a mainTexture texture unit"
     }
-
-    pass.setPipeline(pipeline)
 
     for (let i = 0; i < actualViews.length; i++) {
       const view = /**@type {View} */(actualViews[i])
@@ -51,14 +48,7 @@ export class CanvasBlitNode {
       }
 
       const canvasTarget = /**@type {CanvasTarget} */ (view.object.target)
-      const framebuffer = renderer.caches.getFrameBuffer(renderDevice, canvasTarget)
       const colorSource = view.renderTarget.color[0]
-
-      framebuffer.setViewport(
-        renderDevice.context,
-        canvasTarget.viewport,
-        canvasTarget.scissor || canvasTarget.viewport
-      )
 
       if (!colorSource) {
         targetPool.recycle(view.renderTarget)
@@ -66,13 +56,27 @@ export class CanvasBlitNode {
       }
 
       const source = renderer.caches.getTexture(renderDevice, colorSource)
+      canvasTarget.changed()
+
+      const pass = renderDevice.beginRenderPass({
+        width: canvasTarget.width,
+        height: canvasTarget.height,
+        defaultFramebuffer: true,
+        colorAttachments: [{
+          loadOp: "load",
+          storeOp: "store"
+        }],
+        viewport: canvasTarget.viewport,
+        scissor: canvasTarget.scissor || canvasTarget.viewport
+      })
+
+      pass.setPipeline(pipeline)
       renderDevice.context.activeTexture(WebGL2RenderingContext.TEXTURE0 + textureUnit)
       renderDevice.context.bindTexture(source.type, source.inner)
-      pass.drawArrays(3)
+      pass.draw(3)
+      pass.end()
       targetPool.recycle(view.renderTarget)
     }
-
-    pass.end()
   }
 }
 

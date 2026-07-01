@@ -28,7 +28,6 @@ export class TonemappingNode {
     assert(pipelineState, "TonemappingPipeline resource missing")
 
     const actualViews = views.items()
-    const pass = renderDevice.beginRenderPass()
 
     for (let i = 0; i < actualViews.length; i++) {
       const view = /**@type {View} */(actualViews[i])
@@ -59,25 +58,35 @@ export class TonemappingNode {
         throw "Tonemapping pipeline is missing a mainTexture texture unit"
       }
 
-      const outputTarget = targetPool.get({
+      const outputTarget = /** @type {ImageRenderTarget} */ (targetPool.get({
         width: inputTarget.width,
         height: inputTarget.height,
         color: [TextureFormat.RGBA8Unorm],
         depth: undefined,
-      })
+      }))
 
       outputTarget.viewport.offset.set(0, 0)
       outputTarget.viewport.size.set(1, 1)
       outputTarget.scissor = undefined
 
-      const framebuffer = renderer.caches.getFrameBuffer(renderDevice, outputTarget)
       const source = renderer.caches.getTexture(renderDevice, colorSource)
+      const outputColor = /** @type {import("../../../texture/index.js").Texture | undefined} */ (outputTarget.color[0])
 
-      framebuffer.setViewport(
-        renderDevice.context,
-        outputTarget.viewport,
-        outputTarget.scissor || outputTarget.viewport
-      )
+      assert(outputColor, "Tonemapping output target is missing color texture")
+      outputTarget.changed()
+
+      const pass = renderDevice.beginRenderPass({
+        width: outputTarget.width,
+        height: outputTarget.height,
+        colorAttachments: [{
+          texture: renderer.caches.getTexture(renderDevice, outputColor),
+          layer: outputTarget.layer,
+          loadOp: "load",
+          storeOp: "store"
+        }],
+        viewport: outputTarget.viewport,
+        scissor: outputTarget.scissor || outputTarget.viewport
+      })
 
       pass.setPipeline(pipeline)
       renderDevice.context.activeTexture(WebGL2RenderingContext.TEXTURE0 + textureUnit)
@@ -87,13 +96,12 @@ export class TonemappingNode {
         renderDevice.context.uniform1f(exposureInfo.location, getToneMappingExposure(toneMapping))
       }
 
-      pass.drawArrays(3)
+      pass.draw(3)
+      pass.end()
 
       view.renderTarget = outputTarget
       targetPool.recycle(inputTarget)
     }
-
-    pass.end()
   }
 }
 
