@@ -2085,6 +2085,7 @@ function parseGeometry(gltfMesh, gltf) {
     const primitive = /**@type {GLTFPrimitive} */ (gltfMesh.primitives[i])
     const attributes = new SeparateAttributeData()
     const mesh = new Mesh(attributes)
+    mesh.topology = primitive.mode
     if (primitive.indices !== undefined) {
       const [dataView, accessor] = getAccessorData(
         primitive.indices,
