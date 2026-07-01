@@ -1,9 +1,9 @@
 import { Camera, Object3D } from "../../../objects/index.js"
 import { View, Views } from "../../../renderer/index.js"
-import { CanvasTarget } from "../../../rendertarget"
+import { CanvasTarget, ImageRenderTarget } from "../../../rendertarget"
 import { Vector3 } from "../../../math/index.js"
 import { assert } from "../../../utils/index.js"
-import { RenderTarget2DPool } from "../RenderTarget2DPool.js"
+import { Texture2DPool } from "../RenderTarget2DPool.js"
 import { TextureFormat } from "../../../constants"
 
 export class CameraViewNode {
@@ -17,7 +17,7 @@ export class CameraViewNode {
   execute(context) {
     const { objects, renderer } = context
     const views = renderer.getResource(Views)
-    const targetPool = renderer.getResource(RenderTarget2DPool)
+    const targetPool = renderer.getResource(Texture2DPool)
 
     assert(views, "Views resource missing")
     assert(targetPool, "Render target pool resource missing")
@@ -53,15 +53,28 @@ export class CameraViewNode {
 
 /**
  * @param {Camera} camera
- * @param {RenderTarget2DPool} pool
+ * @param {Texture2DPool} pool
  */
 function getTarget(camera, pool) {
   if (camera.target instanceof CanvasTarget) {
-    return pool.get({
-      width: camera.target.canvas.width,
-      height: camera.target.canvas.height,
-      color: [TextureFormat.RGBA16Float],
-      depth: TextureFormat.Depth24Plus,
+    const width = camera.target.canvas.width
+    const height = camera.target.canvas.height
+    const color = pool.get({
+      width,
+      height,
+      format: TextureFormat.RGBA16Float
+    })
+    const depthTexture = pool.get({
+      width,
+      height,
+      format: TextureFormat.Depth24Plus
+    })
+
+    return new ImageRenderTarget({
+      width,
+      height,
+      color: [color],
+      depthTexture
     })
   }
 

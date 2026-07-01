@@ -6,7 +6,7 @@ import { CompareFunction, MeshVertexLayout, Shader } from "../../../core/index.j
 import { CullFace, PrimitiveTopology, TextureFormat } from "../../../constants/index.js"
 import { assert } from "../../../utils/index.js"
 import { fullscreenVertex, tonemappingFragment } from "../../../shader/index.js"
-import { RenderTarget2DPool } from "../RenderTarget2DPool.js"
+import { Texture2DPool } from "../RenderTarget2DPool.js"
 import { TonemappingPipeline } from "../resources/index.js"
 
 export class TonemappingNode {
@@ -20,7 +20,7 @@ export class TonemappingNode {
   execute(context) {
     const { renderer, renderDevice } = context
     const views = renderer.getResource(Views)
-    const targetPool = renderer.getResource(RenderTarget2DPool)
+    const targetPool = renderer.getResource(Texture2DPool)
     const pipelineState = renderer.getResource(TonemappingPipeline)
 
     assert(views, "Views resource missing")
@@ -58,28 +58,33 @@ export class TonemappingNode {
         throw "Tonemapping pipeline is missing a mainTexture texture unit"
       }
 
-      const outputTarget = /** @type {ImageRenderTarget} */ (targetPool.get({
+      const outputColor = targetPool.get({
         width: inputTarget.width,
         height: inputTarget.height,
-        color: [TextureFormat.RGBA8Unorm],
-        depth: undefined,
-      }))
+        format: TextureFormat.RGBA8Unorm
+      })
+      const outputTarget = new ImageRenderTarget({
+        width: inputTarget.width,
+        height: inputTarget.height,
+        depth: inputTarget.depth,
+        color: [outputColor]
+      })
 
       outputTarget.viewport.offset.set(0, 0)
       outputTarget.viewport.size.set(1, 1)
       outputTarget.scissor = undefined
 
       const source = renderer.caches.getTexture(renderDevice, colorSource)
-      const outputColor = /** @type {import("../../../texture/index.js").Texture | undefined} */ (outputTarget.color[0])
+      const outputColorTexture = /** @type {import("../../../texture/index.js").Texture | undefined} */ (outputTarget.color[0])
 
-      assert(outputColor, "Tonemapping output target is missing color texture")
+      assert(outputColorTexture, "Tonemapping output target is missing color texture")
       outputTarget.changed()
 
       const pass = renderDevice.beginRenderPass({
         width: outputTarget.width,
         height: outputTarget.height,
         colorAttachments: [{
-          texture: renderer.caches.getTexture(renderDevice, outputColor),
+          texture: renderer.caches.getTexture(renderDevice, outputColorTexture),
           layer: outputTarget.layer,
           loadOp: "load",
           storeOp: "store"
@@ -100,7 +105,16 @@ export class TonemappingNode {
       pass.end()
 
       view.renderTarget = outputTarget
-      targetPool.recycle(inputTarget)
+      for (let i = 0; i < inputTarget.color.length; i++) {
+        const texture = inputTarget.color[i]
+        if (texture) {
+          targetPool.recycle(texture)
+        }
+      }
+
+      if (inputTarget.depthTexture) {
+        targetPool.recycle(inputTarget.depthTexture)
+      }
     }
   }
 }

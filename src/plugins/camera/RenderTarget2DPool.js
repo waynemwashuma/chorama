@@ -1,20 +1,20 @@
+/** @import { TextureSettings } from "../../texture/index.js" */
 import { hash } from "hash-it";
-import { TextureFormat, TextureType } from "../../constants";
-import { ImageRenderTarget } from "../../rendertarget";
+import { TextureType } from "../../constants";
 import { Texture } from "../../texture";
 import { assertTrue } from "../../utils";
 
 
-export class RenderTarget2DPool {
+export class Texture2DPool {
   /**
-   * @type {Map<number, [RenderTarget2DPoolDescriptor, ImageRenderTarget[]]>}
+   * @type {Map<number, [Required<TextureSettings>, Texture[]]>}
    */
   map = new Map();
 
   /**
    * @private
    * @param {number} id
-   * @param {RenderTarget2DPoolDescriptor} descriptor
+   * @param {Required<TextureSettings>} descriptor
    */
   getInternal(id, descriptor) {
     const item = this.map.get(id);
@@ -22,75 +22,76 @@ export class RenderTarget2DPool {
     if (item) {
       return item;
     }
-    const newItem = /**@type {[RenderTarget2DPoolDescriptor, ImageRenderTarget[]]} */ ([descriptor, []]);
+    const newItem = /**@type {[Required<TextureSettings>, Texture[]]} */ ([descriptor, []]);
     this.map.set(id, newItem);
     return newItem;
   }
   /**
-   * @param {RenderTarget2DPoolDescriptor} descriptor
+   * @param {TextureSettings} descriptor
+   * @returns {Texture}
    */
   get(descriptor) {
-    const id = hash(descriptor);
+    const normalized = normalizeDescriptor(descriptor);
+    const id = hash(normalized);
     const item = this.map.get(id);
 
     if (item && item[1].length) {
-      return /**@type {ImageRenderTarget} */ (item[1].pop());
+      return /**@type {Texture} */ (item[1].pop());
     }
-    const rendertarget = new ImageRenderTarget({
-      width: descriptor.width,
-      height: descriptor.height,
-      color: descriptor.color.map((format) => new Texture({
-        format,
-        type: TextureType.Texture2D
-      })),
-      depthTexture: descriptor.depth ? new Texture({
-        format: descriptor.depth,
-        type: TextureType.Texture2D
-      }) : undefined
-    });
 
-    return rendertarget;
+    return new Texture({
+      format: normalized.format,
+      type: TextureType.Texture2D,
+      width: normalized.width,
+      height: normalized.height,
+      depth: normalized.depth,
+      generateMipmaps: normalized.generateMipmaps
+    });
   }
 
   /**
-   * @param {ImageRenderTarget} renderTarget
+   * @param {Texture} texture
    */
-  recycle(renderTarget) {
-    const descriptor = descriptorFromRenderTarget(renderTarget);
+  recycle(texture) {
+    const descriptor = descriptorFromTexture(texture);
     const id = hash(descriptor);
 
     const item = this.getInternal(id, descriptor);
 
-    item[1].push(renderTarget);
+    item[1].push(texture);
+  }
+}
+
+export { Texture2DPool as RenderTarget2DPool }
+
+/**
+ * @param {TextureSettings} descriptor
+ * @returns {Required<TextureSettings>}
+ */
+function normalizeDescriptor(descriptor) {
+  return {
+    format: descriptor.format ?? Texture.defaultSettings.format,
+    width: descriptor.width ?? Texture.defaultSettings.width,
+    height: descriptor.height ?? Texture.defaultSettings.height,
+    depth: descriptor.depth ?? Texture.defaultSettings.depth,
+    generateMipmaps: descriptor.generateMipmaps ?? Texture.defaultSettings.generateMipmaps
   }
 }
 
 /**
-* @param {ImageRenderTarget} renderTarget
-* @returns {RenderTarget2DPoolDescriptor}
+* @param {Texture} texture
+* @returns {Required<TextureSettings>}
 */
-export function descriptorFromRenderTarget(renderTarget) {
+export function descriptorFromTexture(texture) {
+  assertTrue(texture.type === TextureType.Texture2D, "Invalid texture for the pool")
+
   const descriptor = {
-    color: renderTarget.color.map(t => t?.format),
-    depth: renderTarget.depthTexture?.format,
-    width: renderTarget.width,
-    height: renderTarget.height
+    format: texture.format,
+    width: texture.width,
+    height: texture.height,
+    depth: texture.depth,
+    generateMipmaps: texture.generateMipmaps
   }
 
-  renderTarget.color.forEach((t) => {
-    assertTrue(t.type === TextureType.Texture2D, "Invalid render target for the pool")
-  })
-  
-  if(renderTarget.depthTexture){
-    assertTrue(renderTarget.depthTexture.type === TextureType.Texture2D, "Invalid render target for the pool")
-  }
   return descriptor
 }
-
-/**
- * @typedef {Object} RenderTarget2DPoolDescriptor
- * @property {TextureFormat[]} color
- * @property {TextureFormat | undefined} depth
- * @property {number} width
- * @property {number} height
- */

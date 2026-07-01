@@ -5,7 +5,7 @@ import { CanvasTarget, ImageRenderTarget } from "../../../rendertarget/index.js"
 import { CompareFunction, MeshVertexLayout, Shader } from "../../../core/index.js"
 import { CullFace, PrimitiveTopology, TextureFormat } from "../../../constants/index.js"
 import { assert } from "../../../utils/index.js"
-import { RenderTarget2DPool } from "../RenderTarget2DPool.js"
+import { Texture2DPool } from "../RenderTarget2DPool.js"
 import { CanvasBlitPipeline } from "../resources/index.js"
 import { blitFragment, fullscreenVertex } from "../../../shader/index.js"
 
@@ -19,7 +19,7 @@ export class CanvasBlitNode {
   execute(context) {
     const { renderer, renderDevice } = context
     const views = renderer.getResource(Views)
-    const targetPool = renderer.getResource(RenderTarget2DPool)
+    const targetPool = renderer.getResource(Texture2DPool)
     const pipelineState = renderer.getResource(CanvasBlitPipeline)
 
     assert(views, "Views resource missing")
@@ -51,7 +51,16 @@ export class CanvasBlitNode {
       const colorSource = view.renderTarget.color[0]
 
       if (!colorSource) {
-        targetPool.recycle(view.renderTarget)
+        for (let recycleIndex = 0; recycleIndex < view.renderTarget.color.length; recycleIndex++) {
+          const texture = view.renderTarget.color[recycleIndex]
+          if (texture) {
+            targetPool.recycle(texture)
+          }
+        }
+
+        if (view.renderTarget.depthTexture) {
+          targetPool.recycle(view.renderTarget.depthTexture)
+        }
         continue
       }
 
@@ -75,7 +84,16 @@ export class CanvasBlitNode {
       renderDevice.context.bindTexture(source.type, source.inner)
       pass.draw(3)
       pass.end()
-      targetPool.recycle(view.renderTarget)
+      for (let recycleIndex = 0; recycleIndex < view.renderTarget.color.length; recycleIndex++) {
+        const texture = view.renderTarget.color[recycleIndex]
+        if (texture) {
+          targetPool.recycle(texture)
+        }
+      }
+
+      if (view.renderTarget.depthTexture) {
+        targetPool.recycle(view.renderTarget.depthTexture)
+      }
     }
   }
 }
