@@ -16,9 +16,9 @@ export class WebGLRenderPassEncoder {
   pipeline
   /**
    * @private
-   * @type {Map<number, WebGLBindGroup>}
+   * @type {(WebGLBindGroup | undefined)[]}
    */
-  bindGroups = new Map()
+  bindGroups = []
 
   /**
    * @param {WebGL2RenderingContext} context
@@ -81,7 +81,7 @@ export class WebGLRenderPassEncoder {
       bindGroup.apply(this.context, this.pipeline)
     }
 
-    this.bindGroups.set(index, bindGroup)
+    this.bindGroups[index] = bindGroup
   }
 
   /**
@@ -114,7 +114,7 @@ export class WebGLRenderPassEncoder {
 
   end() {
     this.pipeline = undefined
-    this.bindGroups.clear()
+    this.bindGroups.length = 0
     this.context.bindVertexArray(null)
   }
 }
@@ -134,21 +134,27 @@ function validateBindGroupCompatibility(pipeline, index, bindGroup) {
 /**
  * Keeps only bind groups that still match the active pipeline layout at the same index.
  * @param {import("./renderpipeline.js").WebGLRenderPipeline} pipeline
- * @param {Map<number, WebGLBindGroup>} bindGroups
+ * @param {Array<WebGLBindGroup | undefined>} bindGroups
  */
 function retainCompatibleBindGroups(pipeline, bindGroups) {
-  for (const [index, bindGroup] of bindGroups) {
+  for (let index = 0; index < bindGroups.length; index++) {
+    const bindGroup = bindGroups[index]
+
+    if (!bindGroup) {
+      continue
+    }
+
     const expectedLayout = pipeline.layout.getBindGroupLayout(index)
 
     if (!expectedLayout || !expectedLayout.compatibleWith(bindGroup.layout)) {
-      bindGroups.delete(index)
+      bindGroups[index] = undefined
     }
   }
 }
 
 /**
  * @param {import("./renderpipeline.js").WebGLRenderPipeline} pipeline
- * @param {ReadonlyMap<number, WebGLBindGroup>} bindGroups
+ * @param {ReadonlyArray<WebGLBindGroup | undefined>} bindGroups
  */
 function validateRequiredBindGroups(pipeline, bindGroups) {
   for (let i = 0; i < pipeline.layout.bindGroupLayouts.length; i++) {
@@ -158,7 +164,7 @@ function validateRequiredBindGroups(pipeline, bindGroups) {
       continue
     }
 
-    const bindGroup = bindGroups.get(i)
+    const bindGroup = bindGroups[i]
 
     assert(bindGroup, `Pipeline requires bind group ${i}`)
   }
