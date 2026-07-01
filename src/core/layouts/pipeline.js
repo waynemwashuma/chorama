@@ -1,4 +1,5 @@
-/** @import { WebGLBindGroup, WebGLBindGroupLayout } from "../webgl/bindgroup.js" */
+/** @import { WebGLBindGroup } from "../webgl/bindgroup.js" */
+/** @import { WebGLBindGroupLayout } from "./bindgroup.js" */
 
 export class WebGLPipelineLayout {
   /**

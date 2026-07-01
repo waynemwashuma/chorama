@@ -1,45 +1,6 @@
-/** @import { WebGLBindGroupDescriptor, WebGLBindGroupEntry, WebGLBindGroupLayoutDescriptor, WebGLBindGroupLayoutEntry } from "./descriptors.js" */
-import { assert } from "../../utils/index.js"
-
-export class WebGLBindGroupLayout {
-  /**
-   * @readonly
-   * @type {string | undefined}
-   */
-  label
-
-  /**
-   * @readonly
-   * @type {readonly WebGLBindGroupLayoutEntry[]}
-   */
-  entries
-
-  /**
-   * @private
-   * @type {Map<number, WebGLBindGroupLayoutEntry>}
-   */
-  entryMap = new Map()
-
-  /**
-   * @param {WebGLBindGroupLayoutDescriptor} descriptor
-   */
-  constructor({ label, entries }) {
-    this.label = label
-    this.entries = [...entries]
-
-    for (const entry of entries) {
-      assert(!this.entryMap.has(entry.binding) ? {} : undefined, `Duplicate bind group layout binding ${entry.binding}`)
-      this.entryMap.set(entry.binding, entry)
-    }
-  }
-
-  /**
-   * @param {number} binding
-   */
-  getEntry(binding) {
-    return this.entryMap.get(binding)
-  }
-}
+/** @import { WebGLBindGroupDescriptor, WebGLBindGroupEntry } from "./descriptors.js" */
+/** @import { WebGLBindGroupLayout, WebGLBindGroupLayoutEntry } from "../layouts/bindgroup.js" */
+import { assertTrue } from "../../utils/index.js"
 
 export class WebGLBindGroup {
   /**
