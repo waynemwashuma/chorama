@@ -215,6 +215,7 @@ function getSkyboxRenderPipeline(device, renderer) {
 function createSkyboxBindGroup(device, renderer, skyboxPipeline, layout, day, night, object) {
   const dayTexture = renderer.caches.getTexture(device, day)
   const nightTexture = renderer.caches.getTexture(device, night)
+  const sampler = renderer.defaults.textureSampler
   const uniformBuffer = getSkyboxUniformBuffer(device, renderer, layout, object)
   const bindGroupLayout = skyboxPipeline.bindGroupLayout
 
@@ -236,13 +237,15 @@ function createSkyboxBindGroup(device, renderer, skyboxPipeline, layout, day, ni
       {
         binding: 1,
         resource: {
-          texture: dayTexture
+          texture: dayTexture,
+          sampler
         }
       },
       {
         binding: 2,
         resource: {
-          texture: nightTexture
+          texture: nightTexture,
+          sampler
         }
       }
     ]
@@ -262,8 +265,12 @@ function getSkyboxUniformBuffer(device, renderer, layout, object) {
     return existing
   }
 
+  const template = renderer.caches.uniformBuffers.get("SkyBoxBlock")
+
+  assert(template, "SkyBoxBlock uniform buffer missing")
+
   const name = `SkyBoxBlock:${skyboxUniformBufferId++}`
-  const buffer = renderer.caches.uniformBuffers.set(device, name, layout)
+  const buffer = renderer.caches.uniformBuffers.setAtPoint(device, name, template.point, layout)
 
   skyboxUniformBuffers.set(object, buffer)
   return buffer
@@ -276,7 +283,7 @@ function getSkyboxUniformBuffer(device, renderer, layout, object) {
 function createSkyboxUniformData(layout, object) {
   const data = new ArrayBuffer(layout.size)
   const floats = new Float32Array(data)
-  const transformMatrix = /** @type {ArrayLike<number>} */ (/** @type {unknown} */ (Affine3.toMatrix4(object.transform.world)))
+  const transformMatrix = new Float32Array([...Affine3.toMatrix4(object.transform.world)])
   let modelWritten = false
   let lerpWritten = false
 
