@@ -15,7 +15,7 @@ in vec3 position;
 in vec2 uv;
 in vec3 normal;
 #ifdef VERTEX_TANGENTS
-  in vec3 tangent;
+  in vec4 tangent;
 #endif
 #ifdef SKINNED
   in uvec4 joint_index;
@@ -30,7 +30,7 @@ out vec3 v_position;
   out vec3 v_normal;
 #endif
 #ifdef VERTEX_TANGENTS
-  out vec3 v_tangent;
+  out vec4 v_tangent;
 #endif
 out vec3 cam_direction;
 
@@ -73,13 +73,13 @@ void main(){
   #ifdef VERTEX_TANGENTS
     #ifdef SKINNED
       vec3 skeleton_space_tangent =
-        (mat3(boneMat0) * tangent) * joint_weight.x +
-        (mat3(boneMat1) * tangent) * joint_weight.y +
-        (mat3(boneMat2) * tangent) * joint_weight.z +
-        (mat3(boneMat3) * tangent) * joint_weight.w;
-      v_tangent = normal_matrix * skeleton_space_tangent;
+        (mat3(boneMat0) * tangent.xyz) * joint_weight.x +
+        (mat3(boneMat1) * tangent.xyz) * joint_weight.y +
+        (mat3(boneMat2) * tangent.xyz) * joint_weight.z +
+        (mat3(boneMat3) * tangent.xyz) * joint_weight.w;
+      v_tangent = vec4(normal_matrix * skeleton_space_tangent, tangent.w);
     #else
-      v_tangent = normal_matrix * tangent;
+      v_tangent = vec4(normal_matrix * tangent.xyz, tangent.w);
     #endif
   #endif
   cam_direction = camera.cam_position - world_space_position;

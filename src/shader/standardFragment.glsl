@@ -40,7 +40,7 @@ in vec3 v_position;
   in vec3 v_normal;
 #endif
 #ifdef VERTEX_TANGENTS
-  in vec3 v_tangent;
+  in vec4 v_tangent;
 #endif
 in vec3 cam_direction;
 
@@ -169,8 +169,8 @@ PBRProperties calculate_pbr_properties(){
       #error "Mesh vertex normals are required for lighting."
     #endif
     #ifdef VERTEX_UVS
-      vec3 tangent = normalize(v_tangent);
-      vec3 bitangent = cross(normal, tangent);
+      vec3 tangent = normalize(v_tangent.xyz);
+      vec3 bitangent = cross(normal, tangent) * v_tangent.w;
       mat3 tangent_space = mat3(tangent, bitangent, normal);
       vec3 surface_normal = texture(normal_texture, v_uv).rgb * 2.0 - 1.0;
       properties.normal = tangent_space * surface_normal;

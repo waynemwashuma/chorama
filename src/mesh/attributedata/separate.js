@@ -161,7 +161,7 @@ export class SeparateAttributeData {
 
     if (tangents) {
       const floats = new Float32Array(tangents.buffer, tangents.byteOffset, tangents.byteLength / Float32Array.BYTES_PER_ELEMENT)
-      for (let i = 0; i < floats.length; i += 3) {
+      for (let i = 0; i < floats.length; i += 4) {
         const tangent = new Vector3(
           floats[i],
           floats[i + 1],

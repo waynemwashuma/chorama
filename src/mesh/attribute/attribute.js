@@ -58,7 +58,7 @@ export class Attribute {
   static Tangent = new Attribute(
     'tangent',
     4,
-    VertexFormat.Float32x3
+    VertexFormat.Float32x4
   )
 
   static Color = new Attribute(
