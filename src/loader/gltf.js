@@ -10,7 +10,7 @@ import { SeparateAttributeData } from '../mesh/attributedata/separate.js';
 import { TextureLoader } from './texture.js';
 import { Texture, Sampler } from '../texture/index.js';
 import { assert } from '../utils/index.js';
-import { GlDataType, TextureFilter, TextureType, TextureWrap, VertexFormat } from '../constants/index.js';
+import { TextureFilter, TextureType, TextureWrap } from '../constants/index.js';
 
 const defaultMaterial = new StandardMaterial()
 const GLB_MAGIC = 0x46546C67
@@ -77,47 +77,10 @@ export class GLTFLoader extends Loader {
 
       throw "Unsupported gltf image setting"
     }))
-    const samplers = gltf.samplers.map((gltfSampler) => {
-      const sampler = new Sampler()
-      sampler.magnificationFilter = gltfSampler.magFilter || TextureFilter.Linear
-      sampler.wrapS = gltfSampler.wrapS || TextureWrap.Repeat
-      sampler.wrapT = gltfSampler.wrapT || TextureWrap.Repeat
-
-      if (gltfSampler.minFilter !== undefined) {
-        switch (gltfSampler.minFilter) {
-          case WebGL2RenderingContext.NEAREST:
-            sampler.minificationFilter = TextureFilter.Nearest
-            sampler.mipmapFilter = undefined
-            break;
-          case WebGL2RenderingContext.LINEAR:
-            sampler.minificationFilter = TextureFilter.Linear
-            sampler.mipmapFilter = undefined
-            break;
-          case WebGL2RenderingContext.NEAREST_MIPMAP_NEAREST:
-            sampler.minificationFilter = TextureFilter.Nearest
-            sampler.mipmapFilter = TextureFilter.Nearest
-            break;
-          case WebGL2RenderingContext.NEAREST_MIPMAP_LINEAR:
-            sampler.minificationFilter = TextureFilter.Nearest
-            sampler.mipmapFilter = TextureFilter.Linear
-            break;
-          case WebGL2RenderingContext.LINEAR_MIPMAP_NEAREST:
-            sampler.minificationFilter = TextureFilter.Linear
-            sampler.mipmapFilter = TextureFilter.Nearest
-            break;
-          case WebGL2RenderingContext.LINEAR_MIPMAP_LINEAR:
-            sampler.minificationFilter = TextureFilter.Linear
-            sampler.mipmapFilter = TextureFilter.Linear
-            break;
-          default:
-            throw 'GLTF: Invalid minification sampler';
-        }
-      }
-      return sampler
-    })
+    const samplers = gltf.samplers.map((gltfSampler) => createGLTFSampler(gltfSampler))
 
     /**
-     * @type {[Texture, Sampler | undefined][]}
+     * @type {[Texture, Sampler][]}
      */
     const textures = gltf.textures.map((gltfTextures) => {
       const image = images[gltfTextures.source]
@@ -125,7 +88,9 @@ export class GLTFLoader extends Loader {
 
       if (gltfTextures.sampler !== undefined) {
         const sampler = samplers[gltfTextures.sampler]
-        if (sampler?.mipmapFilter !== undefined) {
+        assert(sampler, "GLTF texture does not have a valid sampler")
+
+        if (sampler.mipmapFilter !== undefined) {
           image.generateMipmaps = true
         }
         return [image, sampler]
@@ -346,16 +311,100 @@ async function loadBuffers(base, uris, embeddedBuffers = []) {
 }
 
 /**
+ * @param {number} filter
+ * @returns {TextureFilter}
+ */
+function mapGLTFMagnificationFilter(filter) {
+  switch (filter) {
+    case TextureFilter.Nearest:
+      return TextureFilter.Nearest
+    case TextureFilter.Linear:
+      return TextureFilter.Linear
+    default:
+      throw "GLTF: Invalid magnification sampler"
+  }
+}
+
+/**
+ * @param {number} filter
+ * @returns {[TextureFilter, TextureFilter | undefined]}
+ */
+function mapGLTFMinificationFilter(filter) {
+  switch (filter) {
+    case TextureFilter.Nearest:
+      return [TextureFilter.Nearest, undefined]
+    case TextureFilter.Linear:
+      return [TextureFilter.Linear, undefined]
+    case 0x2700:
+      return [TextureFilter.Nearest, TextureFilter.Nearest]
+    case 0x2701:
+      return [TextureFilter.Nearest, TextureFilter.Linear]
+    case 0x2702:
+      return [TextureFilter.Linear, TextureFilter.Nearest]
+    case 0x2703:
+      return [TextureFilter.Linear, TextureFilter.Linear]
+    default:
+      throw "GLTF: Invalid minification sampler"
+  }
+}
+
+/**
+ * @param {number} wrap
+ * @returns {TextureWrap}
+ */
+function mapGLTFTextureWrap(wrap) {
+  switch (wrap) {
+    case TextureWrap.Clamp:
+      return TextureWrap.Clamp
+    case TextureWrap.MirrorRepeat:
+      return TextureWrap.MirrorRepeat
+    case TextureWrap.Repeat:
+      return TextureWrap.Repeat
+    default:
+      throw "GLTF: Invalid texture wrap"
+  }
+}
+
+/**
+ * @param {GLFTSampler} [gltfSampler]
+ * @returns {Sampler}
+ */
+function createGLTFSampler(gltfSampler) {
+  const sampler = createDefaultGLTFSampler()
+
+  if (gltfSampler?.magFilter !== undefined) {
+    sampler.magnificationFilter = mapGLTFMagnificationFilter(gltfSampler.magFilter)
+  }
+
+  if (gltfSampler?.minFilter !== undefined) {
+    const [minificationFilter, mipmapFilter] = mapGLTFMinificationFilter(gltfSampler.minFilter)
+    sampler.minificationFilter = minificationFilter
+    sampler.mipmapFilter = mipmapFilter
+  }
+
+  if (gltfSampler?.wrapS !== undefined) {
+    sampler.wrapS = mapGLTFTextureWrap(gltfSampler.wrapS)
+  }
+
+  if (gltfSampler?.wrapT !== undefined) {
+    sampler.wrapT = mapGLTFTextureWrap(gltfSampler.wrapT)
+  }
+
+  return sampler
+}
+
+/**
  * @returns {Sampler}
  */
 function createDefaultGLTFSampler() {
-  const sampler = new Sampler()
-  sampler.magnificationFilter = TextureFilter.Linear
-  sampler.minificationFilter = TextureFilter.Linear
-  sampler.mipmapFilter = undefined
-  sampler.wrapS = TextureWrap.Repeat
-  sampler.wrapT = TextureWrap.Repeat
-  return sampler
+  return new Sampler({
+    magnificationFilter: TextureFilter.Linear,
+    minificationFilter: TextureFilter.Linear,
+    mipmapFilter: undefined,
+    wrapS: TextureWrap.Repeat,
+    wrapT: TextureWrap.Repeat,
+    wrapR: TextureWrap.Repeat
+  })
 }
 
 /**
@@ -1901,10 +1950,37 @@ function getAccessorData(index, gltf) {
 
   if (!buffer) throw "Invalid access to buffer"
 
-  const byteLength = accessor.count * getComponentSize(accessor.componentType) * getElementSize(accessor.type)
+  const componentSize = getComponentSize(accessor.componentType)
+  const elementSize = getElementSize(accessor.type)
+  const elementByteLength = componentSize * elementSize
+  const stride = view.stride || elementByteLength
+
+  if (stride < elementByteLength) {
+    throw "Invalid accessor stride"
+  }
+
+  if (stride === elementByteLength) {
+    const byteLength = accessor.count * elementByteLength
+    return [
+      new DataView(buffer, view.offset + accessor.offset, byteLength),
+      accessor
+    ]
+  }
+
+  const packedBuffer = new ArrayBuffer(accessor.count * elementByteLength)
+  const destination = new Uint8Array(packedBuffer)
+  const sourceOffset = view.offset + accessor.offset
+
+  for (let i = 0; i < accessor.count; i++) {
+    const sourceStart = sourceOffset + i * stride
+    destination.set(
+      new Uint8Array(buffer, sourceStart, elementByteLength),
+      i * elementByteLength
+    )
+  }
 
   return [
-    new DataView(buffer, view.offset + accessor.offset, byteLength),
+    new DataView(packedBuffer),
     accessor
   ]
 }
@@ -1914,6 +1990,10 @@ function getAccessorData(index, gltf) {
  * @param {DataView} view
  */
 function mapToIndices(accessor, view) {
+  if (accessor.type !== GLTFAccessorType.Scalar) {
+    throw "Indices provided on a mesh is not valid"
+  }
+
   switch (accessor.componentType) {
     case GLTFComponentType.UnsignedByte:
       return new Uint8Array(
@@ -1939,54 +2019,219 @@ function mapToIndices(accessor, view) {
 }
 
 /**
+ * @param {GLTFComponentType} componentType
+ */
+function isFloatComponentType(componentType) {
+  return componentType === GLTFComponentType.Float
+}
+
+/**
+ * @param {GLTFComponentType} componentType
+ */
+function isNormalizedIntegerComponentType(componentType) {
+  switch (componentType) {
+    case GLTFComponentType.Byte:
+    case GLTFComponentType.UnsignedByte:
+    case GLTFComponentType.Short:
+    case GLTFComponentType.UnsignedShort:
+      return true
+    default:
+      return false
+  }
+}
+
+/**
+ * @param {GLTFComponentType} componentType
+ */
+function isJointComponentType(componentType) {
+  switch (componentType) {
+    case GLTFComponentType.UnsignedByte:
+    case GLTFComponentType.UnsignedShort:
+      return true
+    default:
+      return false
+  }
+}
+
+/**
+ * @param {DataView} view
+ * @param {number} offset
+ * @param {GLTFComponentType} componentType
+ * @param {boolean} normalized
+ * @returns {number}
+ */
+function readAccessorComponent(view, offset, componentType, normalized) {
+  switch (componentType) {
+    case GLTFComponentType.Byte: {
+      const value = view.getInt8(offset)
+      if (!normalized) return value
+      return Math.max(value / 127, -1)
+    }
+    case GLTFComponentType.UnsignedByte: {
+      const value = view.getUint8(offset)
+      if (!normalized) return value
+      return value / 255
+    }
+    case GLTFComponentType.Short: {
+      const value = view.getInt16(offset, true)
+      if (!normalized) return value
+      return Math.max(value / 32767, -1)
+    }
+    case GLTFComponentType.UnsignedShort: {
+      const value = view.getUint16(offset, true)
+      if (!normalized) return value
+      return value / 65535
+    }
+    case GLTFComponentType.Int: {
+      const value = view.getInt32(offset, true)
+      if (!normalized) return value
+      return Math.max(value / 2147483647, -1)
+    }
+    case GLTFComponentType.UnsignedInt: {
+      const value = view.getUint32(offset, true)
+      if (!normalized) return value
+      return value / 4294967295
+    }
+    case GLTFComponentType.Float:
+      return view.getFloat32(offset, true)
+    default:
+      throw "Unsupported accessor component type"
+  }
+}
+
+/**
+ * @param {GLTFAccessor} accessor
+ * @param {DataView} buffer
+ * @param {number} componentCount
+ * @param {boolean} [allowVec3Padding=false]
+ * @returns {DataView}
+ */
+function convertAccessorToFloat32(accessor, buffer, componentCount, allowVec3Padding = false) {
+  const sourceComponents = getElementSize(accessor.type)
+  if (sourceComponents !== componentCount) {
+    if (!(allowVec3Padding && componentCount === 4 && sourceComponents === 3)) {
+      throw "Attribute types do not match"
+    }
+  }
+
+  const componentSize = getComponentSize(accessor.componentType)
+  const normalized = accessor.normalized
+  const result = new Float32Array(accessor.count * componentCount)
+
+  for (let i = 0; i < accessor.count; i++) {
+    const sourceOffset = i * sourceComponents * componentSize
+    const resultOffset = i * componentCount
+
+    for (let component = 0; component < sourceComponents; component++) {
+      result[resultOffset + component] = readAccessorComponent(
+        buffer,
+        sourceOffset + component * componentSize,
+        accessor.componentType,
+        normalized
+      )
+    }
+
+    if (allowVec3Padding && componentCount === 4 && sourceComponents === 3) {
+      result[resultOffset + 3] = 1.0
+    }
+  }
+
+  return new DataView(result.buffer)
+}
+
+/**
+ * @param {GLTFAccessor} accessor
+ * @param {DataView} buffer
+ * @returns {DataView}
+ */
+function convertAccessorToUint16(accessor, buffer) {
+  const sourceComponents = getElementSize(accessor.type)
+  if (sourceComponents !== 4) {
+    throw "Attribute types do not match"
+  }
+
+  const componentType = accessor.componentType
+  if (!isJointComponentType(componentType) || accessor.normalized) {
+    throw "Attribute types do not match"
+  }
+
+  const componentSize = getComponentSize(componentType)
+  const result = new Uint16Array(accessor.count * sourceComponents)
+
+  for (let i = 0; i < accessor.count; i++) {
+    const sourceOffset = i * sourceComponents * componentSize
+    const resultOffset = i * sourceComponents
+
+    for (let component = 0; component < sourceComponents; component++) {
+      result[resultOffset + component] = readAccessorComponent(
+        buffer,
+        sourceOffset + component * componentSize,
+        componentType,
+        false
+      )
+    }
+  }
+
+  return new DataView(result.buffer)
+}
+
+/**
  * @param {string} name
  * @param {GLTFAccessor} accessor
  * @param {DataView} buffer
  * @returns {[string, DataView] | undefined}
  */
 function mapAccessorTypeToAttribute(name, accessor, buffer) {
-  const { componentType: type } = accessor
   switch (name) {
     case GLTFAttributeName.Position:
-      if (type !== mapToGLTFComponentType(Attribute.Position.format))
+      if (accessor.type !== GLTFAccessorType.Vec3 || accessor.componentType !== GLTFComponentType.Float || accessor.normalized)
         throw "Attribute types do not match"
-      return [Attribute.Position.name, buffer]
+      return [Attribute.Position.name, convertAccessorToFloat32(accessor, buffer, 3)]
     case GLTFAttributeName.TexCoord0:
-      if (type !== mapToGLTFComponentType(Attribute.UV.format))
+      if (
+        accessor.type !== GLTFAccessorType.Vec2 ||
+        (!isFloatComponentType(accessor.componentType) && !isNormalizedIntegerComponentType(accessor.componentType)) ||
+        (accessor.componentType === GLTFComponentType.Float ? accessor.normalized : !accessor.normalized)
+      )
         throw "Attribute types do not match"
-      return [Attribute.UV.name, buffer]
+      return [Attribute.UV.name, convertAccessorToFloat32(accessor, buffer, 2)]
     case GLTFAttributeName.TexCoord1:
-      if (type !== mapToGLTFComponentType(Attribute.UVB.format))
+      if (
+        accessor.type !== GLTFAccessorType.Vec2 ||
+        (!isFloatComponentType(accessor.componentType) && !isNormalizedIntegerComponentType(accessor.componentType)) ||
+        (accessor.componentType === GLTFComponentType.Float ? accessor.normalized : !accessor.normalized)
+      )
         throw "Attribute types do not match"
-      return [Attribute.UVB.name, buffer]
+      return [Attribute.UVB.name, convertAccessorToFloat32(accessor, buffer, 2)]
     case GLTFAttributeName.Normal:
-      if (type !== mapToGLTFComponentType(Attribute.Normal.format))
+      if (accessor.type !== GLTFAccessorType.Vec3 || accessor.componentType !== GLTFComponentType.Float || accessor.normalized)
         throw "Attribute types do not match"
-      return [Attribute.Normal.name, buffer]
+      return [Attribute.Normal.name, convertAccessorToFloat32(accessor, buffer, 3)]
     case GLTFAttributeName.Tangent:
-      if (type !== mapToGLTFComponentType(Attribute.Tangent.format))
+      if (accessor.type !== GLTFAccessorType.Vec4 || accessor.componentType !== GLTFComponentType.Float || accessor.normalized)
         throw "Attribute types do not match"
-      return [Attribute.Tangent.name, buffer]
+      return [Attribute.Tangent.name, convertAccessorToFloat32(accessor, buffer, 4)]
     case GLTFAttributeName.Color0:
-      if (type !== mapToGLTFComponentType(Attribute.Color.format))
+      if (
+        (accessor.type !== GLTFAccessorType.Vec3 && accessor.type !== GLTFAccessorType.Vec4) ||
+        (!isFloatComponentType(accessor.componentType) && !isNormalizedIntegerComponentType(accessor.componentType)) ||
+        (accessor.componentType === GLTFComponentType.Float ? accessor.normalized : !accessor.normalized)
+      )
         throw "Attribute types do not match"
-      return [Attribute.Color.name, buffer]
+      return [Attribute.Color.name, convertAccessorToFloat32(accessor, buffer, 4, accessor.type === GLTFAccessorType.Vec3)]
     case GLTFAttributeName.Weights0:
-      if (type !== mapToGLTFComponentType(Attribute.JointWeight.format))
+      if (
+        accessor.type !== GLTFAccessorType.Vec4 ||
+        (!isFloatComponentType(accessor.componentType) && !isNormalizedIntegerComponentType(accessor.componentType)) ||
+        (accessor.componentType === GLTFComponentType.Float ? accessor.normalized : !accessor.normalized)
+      )
         throw "Attribute types do not match"
-      return [Attribute.JointWeight.name, buffer]
+      return [Attribute.JointWeight.name, convertAccessorToFloat32(accessor, buffer, 4)]
     case GLTFAttributeName.Joints0:
-      if (type === mapToGLTFComponentType(Attribute.JointIndex.format)) {
-        return [Attribute.JointIndex.name, buffer]
-      } else if (type === GlDataType.UnsignedByte) {
-        const newBuffer = widenTypedArray(
-          new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength),
-          Uint16Array
-        )
-        return [Attribute.JointIndex.name, new DataView(newBuffer.buffer)]
-      } else {
+      if (accessor.type !== GLTFAccessorType.Vec4 || accessor.normalized || !isJointComponentType(accessor.componentType)) {
         throw "Attribute types do not match"
       }
+      return [Attribute.JointIndex.name, convertAccessorToUint16(accessor, buffer)]
     default:
       return undefined;
   }
@@ -2120,6 +2365,16 @@ function parseGeometry(gltfMesh, gltf) {
  * @returns {Skin}
  */
 function parseSkin(gltfSkin, gltf, entityMap) {
+  const bindPoseAccessor = gltf.accessors[gltfSkin.inverseBindMatrices]
+  if (
+    !bindPoseAccessor ||
+    bindPoseAccessor.type !== GLTFAccessorType.Mat4 ||
+    bindPoseAccessor.componentType !== GLTFComponentType.Float ||
+    bindPoseAccessor.normalized
+  ) {
+    throw "Attribute types do not match"
+  }
+
   const [bindPoseData] = getAccessorData(gltfSkin.inverseBindMatrices, gltf)
   const bindPose = convertToInverseBindPose(bindPoseData)
   const skin = new Skin()
@@ -2250,79 +2505,6 @@ function transferTransform(object, transform) {
  * @param {new (...args:any[])=>TypedArray} to 
  * @returns 
  */
-function widenTypedArray(from, to) {
-  const result = new to(from.length);
-  for (let i = 0; i < from.length; i++) {
-    result[i] = /**@type {bigint | number}*/(from[i])
-  }
-  return result;
-}
-
-/**
- * @param {VertexFormat} vertexFormat
- */
-function mapToGLTFComponentType(vertexFormat) {
-  switch (vertexFormat) {
-    case VertexFormat.Uint8:
-    case VertexFormat.Uint8x2:
-    case VertexFormat.Uint8x3:
-    case VertexFormat.Uint8x4:
-    case VertexFormat.Unorm8:
-    case VertexFormat.Unorm8x2:
-    case VertexFormat.Unorm8x3:
-    case VertexFormat.Unorm8x4:
-      return GLTFComponentType.UnsignedByte;
-    case VertexFormat.Snorm8:
-    case VertexFormat.Snorm8x2:
-    case VertexFormat.Snorm8x3:
-    case VertexFormat.Snorm8x4:
-    case VertexFormat.Sint8:
-    case VertexFormat.Sint8x2:
-    case VertexFormat.Sint8x3:
-    case VertexFormat.Sint8x4:
-      return GLTFComponentType.Byte;
-    case VertexFormat.Uint16:
-    case VertexFormat.Uint16x2:
-    case VertexFormat.Uint16x3:
-    case VertexFormat.Uint16x4:
-    case VertexFormat.Unorm16:
-    case VertexFormat.Unorm16x2:
-    case VertexFormat.Unorm16x3:
-    case VertexFormat.Unorm16x4:
-      return GLTFComponentType.UnsignedShort;
-    case VertexFormat.Snorm16:
-    case VertexFormat.Snorm16x2:
-    case VertexFormat.Snorm16x3:
-    case VertexFormat.Snorm16x4:
-    case VertexFormat.Sint16:
-    case VertexFormat.Sint16x2:
-    case VertexFormat.Sint16x3:
-    case VertexFormat.Sint16x4:
-      return GLTFComponentType.Short;
-    // 32-bit unsigned ints
-    case VertexFormat.Uint32:
-    case VertexFormat.Uint32x2:
-    case VertexFormat.Uint32x3:
-    case VertexFormat.Uint32x4:
-      return GLTFComponentType.UnsignedInt;
-
-    // 32-bit signed ints
-    case VertexFormat.Sint32:
-    case VertexFormat.Sint32x2:
-    case VertexFormat.Sint32x3:
-    case VertexFormat.Sint32x4:
-      return GLTFComponentType.Int;
-    case VertexFormat.Float32:
-    case VertexFormat.Float32x2:
-    case VertexFormat.Float32x3:
-    case VertexFormat.Float32x4:
-      return GLTFComponentType.Float
-    default:
-      throw new Error('Unsupported vertex format: ' + vertexFormat);
-  }
-}
-
-
 /**
  *@typedef {Int8Array | Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array | BigInt64Array | BigUint64Array} TypedArray
  */
