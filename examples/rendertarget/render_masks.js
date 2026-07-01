@@ -124,8 +124,7 @@ function update() {
   box.transform.orientation.multiply(rotation)
   sphere.transform.orientation.multiply(rotation)
 
-  renderer.render([...scene, camera1], renderDevice)
-  renderer.render([...scene, camera2], renderDevice)
+  renderer.render([...scene, camera1, camera2], renderDevice)
   requestAnimationFrame(update)
 }
 

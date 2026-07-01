@@ -40,6 +40,8 @@ const renderer = new WebGLRenderer({
 
 const camera1 = new Camera(renderTarget1)
 const camera2 = new Camera(renderTarget2)
+const LEFT_VIEW = 0
+const RIGHT_VIEW = 1
 const textureLoader = new TextureLoader()
 const texture = textureLoader.load({
   paths: ["/images/uv.jpg"],
@@ -66,6 +68,11 @@ const object = new MeshMaterial3D(new CuboidMeshBuilder().build(), material)
 const skyBox = new SkyBox({
   day,
 })
+
+object.renderMask.clear().on(LEFT_VIEW).on(RIGHT_VIEW)
+skyBox.renderMask.clear().on(LEFT_VIEW)
+camera1.renderMask.clear().on(LEFT_VIEW)
+camera2.renderMask.clear().on(RIGHT_VIEW)
 
 // set up render targets
 renderTarget1.viewport.offset.set(0, 0)
@@ -95,8 +102,7 @@ function update() {
     Quaternion.fromEuler(Math.PI / 1000, Math.PI / 1000, 0)
   )
 
-  renderer.render([skyBox, object, camera1], renderDevice)
-  renderer.render([object, camera2], renderDevice)
+  renderer.render([skyBox, object, camera1, camera2], renderDevice)
   stats.end()
   
   requestAnimationFrame(update)

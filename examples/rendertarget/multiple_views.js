@@ -109,10 +109,7 @@ function update() {
     Quaternion.fromEuler(Math.PI / 1000, Math.PI / 1000, 0)
   )
 
-  renderer.render([skyBox, object, camera1], renderDevice )
-  renderer.render([skyBox, object, camera2], renderDevice )
-  renderer.render([skyBox, object, camera3], renderDevice )
-  renderer.render([skyBox, object, camera4], renderDevice )
+  renderer.render([skyBox, object, camera1, camera2, camera3, camera4], renderDevice )
 
   camera1.transform.orientation.multiply(
     Quaternion.fromEuler(Math.PI / 1000, 0, 0)

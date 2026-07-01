@@ -106,17 +106,16 @@ rightTarget.viewport.size.set(0.5, 1);
 
 Viewport values are normalized (0 to 1) relative to full canvas size.
 
-## Step 8: Bind Cameras to Each View and Render
+## Step 8: Bind Cameras to Each View and Render Once
 
 ```js
 const leftCamera = new Camera(leftTarget);
 const rightCamera = new Camera(rightTarget);
 
-renderer.render([scene, leftCamera], device);
-renderer.render([scene, rightCamera], device);
+renderer.render([scene, leftCamera, rightCamera], device);
 ```
 
-This gives independent camera views in a single canvas.
+This gives independent camera views in a single canvas. If a camera should see a different subset of objects, use `renderMask` bits to separate them before the single render call.
 
 ## Step 9: Use Scissor for Hard Split/Masking
 
