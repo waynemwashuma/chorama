@@ -1,7 +1,7 @@
 /**@import { RenderTargetDescriptor } from './descriptors.js' */
 import { CullFace, FrontFaceDirection, PrimitiveTopology } from "../../constants/index.js";
 import { CompareFunction } from "../constants.js";
-import { MeshVertexLayout, UniformBufferLayout, Uniform } from "../layouts/index.js";
+import { MeshVertexLayout, UniformBufferLayout, Uniform, WebGLPipelineLayout } from "../layouts/index.js";
 
 export class WebGLRenderPipeline {
   /**
@@ -12,6 +12,7 @@ export class WebGLRenderPipeline {
     targets,
     uniforms,
     uniformBlocks,
+    layout,
     topology,
     vertexLayout,
     depthCompare,
@@ -22,6 +23,7 @@ export class WebGLRenderPipeline {
     this.program = program
     this.uniforms = uniforms
     this.uniformBlocks = uniformBlocks
+    this.layout = layout
     this.vertexLayout = vertexLayout
     this.topology = topology
     this.cullMode = cullFace
@@ -42,6 +44,7 @@ export class WebGLRenderPipeline {
 /**
  * @typedef WebGLRenderPipelineOptions
  * @property {WebGLProgram} program
+ * @property {WebGLPipelineLayout} layout
  * @property {Map<string, Uniform>} uniforms
  * @property {Map<string, UniformBufferLayout>} uniformBlocks
  * @property {RenderTargetDescriptor[]} targets
