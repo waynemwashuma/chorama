@@ -4,6 +4,8 @@ import { CompareFunction } from "../constants.js";
 import { MeshVertexLayout } from "../layouts/index.js";
 import { BlendParams, GPUTexture } from "../resources/index.js";
 import { Shader } from "../shader.js";
+/** @import { GPUBuffer } from "../resources/index.js" */
+/** @import { Sampler } from "../../texture/index.js" */
 
 /**
  * @typedef WebGLBindGroupDescriptor
@@ -15,7 +17,30 @@ import { Shader } from "../shader.js";
 /**
  * @typedef WebGLBindGroupEntry
  * @property {number} binding
- * @property {any} resource
+ * @property {WebGLBindGroupResource} resource
+ */
+
+/**
+ * @typedef WebGLBindGroupBufferResource
+ * @property {GPUBuffer} buffer
+ * @property {number} point
+ * @property {number} [offset]
+ * @property {number} [size]
+ */
+
+/**
+ * @typedef WebGLBindGroupTextureResource
+ * @property {GPUTexture} texture
+ * @property {Sampler} [sampler]
+ */
+
+/**
+ * @typedef WebGLBindGroupSamplerResource
+ * @property {Sampler} sampler
+ */
+
+/**
+ * @typedef {WebGLBindGroupBufferResource | WebGLBindGroupTextureResource | WebGLBindGroupSamplerResource} WebGLBindGroupResource
  */
 
 /**

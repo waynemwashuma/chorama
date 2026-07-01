@@ -120,6 +120,11 @@ export class RenderItem {
   uniforms
 
   /**
+   * @type {import("../../core/index.js").WebGLBindGroup | undefined}
+   */
+  bindGroup
+
+  /**
    * @type {string}
    */
   tag
@@ -137,6 +142,7 @@ export class RenderItem {
     mesh,
     tag,
     uniforms,
+    bindGroup,
     transform
   }) {
     this.pipelineId = pipelineId
@@ -144,6 +150,7 @@ export class RenderItem {
     this.mesh = mesh
     this.tag = tag
     this.uniforms = uniforms
+    this.bindGroup = bindGroup
   }
 }
 
@@ -166,6 +173,7 @@ export class RenderItem {
  * @property {GPUMesh} mesh
  * @property {number} pipelineId
  * @property {Record<string, any>} uniforms
+ * @property {import("../../core/index.js").WebGLBindGroup} [bindGroup]
  * @property {string} tag
  */
 

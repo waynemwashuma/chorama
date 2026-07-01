@@ -1,7 +1,8 @@
 /** @import { WebGLBindGroupDescriptor, WebGLBindGroupEntry } from "./descriptors.js" */
+/** @import { WebGLBindGroupBufferResource, WebGLBindGroupTextureResource } from "./descriptors.js" */
 /** @import { WebGLBindGroupLayout, WebGLBindGroupLayoutEntry } from "../layouts/bindgroup.js" */
-import { BufferType, TextureType } from "../../constants/index.js"
-import { GPUBuffer, GPUTexture } from "../resources/index.js"
+/** @import { WebGLRenderPipeline } from "./renderpipeline.js" */
+import { BufferType, TextureFilter, TextureType } from "../../constants/index.js"
 import { assert } from "../../utils/index.js"
 import { assertTrue } from "../../utils/index.js"
 
@@ -59,6 +60,26 @@ export class WebGLBindGroup {
   getEntry(binding) {
     return this.entryMap.get(binding)
   }
+
+  /**
+   * Applies the bind group to the active WebGL state.
+   * @param {WebGL2RenderingContext} context
+   * @param {WebGLRenderPipeline} pipeline
+   */
+  apply(context, pipeline) {
+    for (const entry of this.entries) {
+      const layoutEntry = /** @type {WebGLBindGroupLayoutEntry} */ (this.layout.getEntry(entry.binding))
+
+      if (layoutEntry.buffer !== undefined) {
+        applyBufferBinding(context, /** @type {WebGLBindGroupBufferResource} */ (entry.resource))
+        continue
+      }
+
+      if (layoutEntry.texture !== undefined) {
+        applyTextureBinding(context, pipeline, /** @type {WebGLBindGroupTextureResource} */ (entry.resource), layoutEntry)
+      }
+    }
+  }
 }
 
 /**
@@ -67,36 +88,28 @@ export class WebGLBindGroup {
  */
 function validateBindGroupResource(entry, layoutEntry) {
   if (layoutEntry.buffer !== undefined) {
-    validateBufferResource(entry.resource, layoutEntry)
+    validateBufferResource(/** @type {WebGLBindGroupBufferResource} */ (entry.resource), layoutEntry)
     return
   }
 
   if (layoutEntry.texture !== undefined) {
-    validateTextureResource(entry.resource, layoutEntry)
+    validateTextureResource(/** @type {WebGLBindGroupTextureResource} */ (entry.resource), layoutEntry)
     return
   }
-
-  validateSamplerResource(entry.resource, layoutEntry)
 }
 
 /**
- * @param {unknown} resource
+ * @param {WebGLBindGroupBufferResource} resource
  * @param {WebGLBindGroupLayoutEntry} layoutEntry
  */
 function validateBufferResource(resource, layoutEntry) {
-  const buffer = getBufferResource(resource)
+  const buffer = resource.buffer
   const layout = layoutEntry.buffer
 
-  if (!(buffer instanceof GPUBuffer)) {
-    throw `Bind group binding ${layoutEntry.binding} expects a GPUBuffer resource`
-  }
+  assertTrue(buffer.type === BufferType.Uniform, `Bind group binding ${layoutEntry.binding} expects a uniform buffer`)
 
-  if ((layout?.type ?? "uniform") === "uniform") {
-    assertTrue(buffer.type === BufferType.Uniform, `Bind group binding ${layoutEntry.binding} expects a uniform buffer`)
-  }
-
-  const offset = getOptionalNumber(resource, "offset") ?? 0
-  const size = getOptionalNumber(resource, "size") ?? (buffer.size - offset)
+  const offset = resource.offset ?? 0
+  const size = resource.size ?? (buffer.size - offset)
 
   assertTrue(offset >= 0 && Number.isInteger(offset), `Bind group binding ${layoutEntry.binding} has an invalid buffer offset`)
   assertTrue(size >= 0 && Number.isInteger(size), `Bind group binding ${layoutEntry.binding} has an invalid buffer size`)
@@ -108,87 +121,112 @@ function validateBufferResource(resource, layoutEntry) {
 }
 
 /**
- * @param {unknown} resource
- */
-function getBufferResource(resource) {
-  if (resource instanceof GPUBuffer) {
-    return resource
-  }
-
-  const buffer = isObject(resource) ? resource["buffer"] : undefined
-  return buffer instanceof GPUBuffer ? buffer : undefined
-}
-
-/**
- * @param {unknown} resource
+ * @param {WebGLBindGroupTextureResource} resource
  * @param {WebGLBindGroupLayoutEntry} layoutEntry
  */
 function validateTextureResource(resource, layoutEntry) {
-  const texture = getTextureResource(resource)
+  const texture = resource.texture
+  const expectedViewDimension = layoutEntry.texture?.viewDimension ?? "2d"
+  const matches =
+    (expectedViewDimension === "2d" && texture.type === TextureType.Texture2D) ||
+    (expectedViewDimension === "2d-array" && texture.type === TextureType.Texture2DArray) ||
+    (expectedViewDimension === "cube" && texture.type === TextureType.TextureCubeMap) ||
+    (expectedViewDimension === "3d" && texture.type === TextureType.Texture3D)
 
-  if (!(texture instanceof GPUTexture)) {
-    throw `Bind group binding ${layoutEntry.binding} expects a GPUTexture resource`
-  }
-
-  assertTrue(textureDimensionMatches(texture, layoutEntry.texture), `Bind group binding ${layoutEntry.binding} texture dimension does not match the layout`)
+  assertTrue(matches, `Bind group binding ${layoutEntry.binding} texture dimension does not match the layout`)
 }
 
 /**
- * @param {unknown} resource
+ * @param {WebGL2RenderingContext} context
+ * @param {WebGLBindGroupBufferResource} resource
  */
-function getTextureResource(resource) {
-  if (resource instanceof GPUTexture) {
-    return resource
+function applyBufferBinding(context, resource) {
+  const { buffer, point, offset = 0, size } = resource
+
+  if (size !== undefined) {
+    context.bindBufferRange(buffer.type, point, buffer.inner, offset, size)
+    return
   }
 
-  const texture = isObject(resource) ? resource["texture"] : undefined
-  return texture instanceof GPUTexture ? texture : undefined
+  context.bindBufferBase(buffer.type, point, buffer.inner)
 }
 
 /**
- * @param {GPUTexture} texture
- * @param {import("../layouts/bindgroup.js").WebGLTextureBindingLayout | undefined} layout
- */
-function textureDimensionMatches(texture, layout) {
-  switch (layout?.viewDimension ?? "2d") {
-    case "2d":
-      return texture.type === TextureType.Texture2D
-    case "2d-array":
-      return texture.type === TextureType.Texture2DArray
-    case "cube":
-      return texture.type === TextureType.TextureCubeMap
-    case "3d":
-      return texture.type === TextureType.Texture3D
-    default:
-      return false
-  }
-}
-
-/**
- * @param {unknown} resource
+ * @param {WebGL2RenderingContext} context
+ * @param {WebGLRenderPipeline} pipeline
+ * @param {WebGLBindGroupTextureResource} resource
  * @param {WebGLBindGroupLayoutEntry} layoutEntry
  */
-function validateSamplerResource(resource, layoutEntry) {
-  assertTrue(isObject(resource), `Bind group binding ${layoutEntry.binding} expects a sampler resource`)
-}
+function applyTextureBinding(context, pipeline, resource, layoutEntry) {
+  const { texture, sampler } = resource
 
-/**
- * @param {unknown} value
- * @param {string} key
- */
-function getOptionalNumber(value, key) {
-  if (!isObject(value)) {
-    return undefined
+  if (!layoutEntry.name) {
+    return
   }
 
-  const item = value[key]
-  return typeof item === "number" ? item : undefined
+  const uniform = pipeline.uniforms.get(layoutEntry.name)
+
+  if (!uniform || uniform.texture_unit === undefined) {
+    return
+  }
+
+  context.activeTexture(WebGL2RenderingContext.TEXTURE0 + uniform.texture_unit)
+  context.bindTexture(texture.type, texture.inner)
+
+  if (sampler) {
+    updateTextureSampler(context, texture, sampler)
+  }
 }
 
 /**
- * @param {unknown} value
- * @returns {value is Record<string, unknown>}
+ * @param {WebGL2RenderingContext} context
+ * @param {import("../resources/index.js").GPUTexture} texture
+ * @param {import("../../texture/index.js").Sampler} sampler
  */
-function isObject(value) {
-  return typeof value === "object" && value !== null
+function updateTextureSampler(context, texture, sampler) {
+  const lod = sampler.lod
+  const anisotropyExtenstion = context.getExtension("EXT_texture_filter_anisotropic")
+
+  context.texParameteri(texture.type, context.TEXTURE_MAG_FILTER, sampler.magnificationFilter)
+  context.texParameteri(texture.type, context.TEXTURE_WRAP_S, sampler.wrapS)
+  context.texParameteri(texture.type, context.TEXTURE_WRAP_T, sampler.wrapT)
+  context.texParameteri(texture.type, context.TEXTURE_WRAP_R, sampler.wrapR)
+
+  if (lod) {
+    context.texParameteri(texture.type, context.TEXTURE_MIN_LOD, lod.min)
+    context.texParameteri(texture.type, context.TEXTURE_MAX_LOD, lod.max)
+  }
+
+  if (sampler.mipmapFilter !== undefined) {
+    if (sampler.minificationFilter === TextureFilter.Linear) {
+      if (sampler.mipmapFilter === TextureFilter.Linear) {
+        context.texParameteri(texture.type, context.TEXTURE_MIN_FILTER, context.LINEAR_MIPMAP_LINEAR)
+      } else if (sampler.mipmapFilter === TextureFilter.Nearest) {
+        context.texParameteri(texture.type, context.TEXTURE_MIN_FILTER, context.LINEAR_MIPMAP_NEAREST)
+      }
+    } else if (sampler.minificationFilter === TextureFilter.Nearest) {
+      if (sampler.mipmapFilter === TextureFilter.Linear) {
+        context.texParameteri(texture.type, context.TEXTURE_MIN_FILTER, context.NEAREST_MIPMAP_LINEAR)
+      } else if (sampler.mipmapFilter === TextureFilter.Nearest) {
+        context.texParameteri(texture.type, context.TEXTURE_MIN_FILTER, context.NEAREST_MIPMAP_NEAREST)
+      }
+    }
+  } else {
+    if (sampler.minificationFilter === TextureFilter.Nearest) {
+      context.texParameteri(texture.type, context.TEXTURE_MIN_FILTER, context.NEAREST)
+    } else if (sampler.minificationFilter === TextureFilter.Linear) {
+      context.texParameteri(texture.type, context.TEXTURE_MIN_FILTER, context.LINEAR)
+    }
+  }
+
+  if (anisotropyExtenstion) {
+    context.texParameterf(texture.type, anisotropyExtenstion.TEXTURE_MAX_ANISOTROPY_EXT, sampler.anisotropy)
+  }
+
+  if (sampler.compare !== undefined) {
+    context.texParameteri(texture.type, context.TEXTURE_COMPARE_MODE, context.COMPARE_REF_TO_TEXTURE)
+    context.texParameteri(texture.type, context.TEXTURE_COMPARE_FUNC, sampler.compare)
+  } else {
+    context.texParameteri(texture.type, context.TEXTURE_COMPARE_MODE, context.NONE)
+  }
 }

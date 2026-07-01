@@ -33,6 +33,7 @@ export class WebGLRenderPassEncoder {
    */
   setPipeline(pipeline) {
     this.pipeline = pipeline
+    retainCompatibleBindGroups(pipeline, this.bindGroups)
     this.context.useProgram(pipeline.program)
 
     // culling
@@ -77,6 +78,7 @@ export class WebGLRenderPassEncoder {
 
     if (this.pipeline) {
       validateBindGroupCompatibility(this.pipeline, index, bindGroup)
+      bindGroup.apply(this.context, this.pipeline)
     }
 
     this.bindGroups.set(index, bindGroup)
@@ -130,6 +132,21 @@ function validateBindGroupCompatibility(pipeline, index, bindGroup) {
 }
 
 /**
+ * Keeps only bind groups that still match the active pipeline layout at the same index.
+ * @param {import("./renderpipeline.js").WebGLRenderPipeline} pipeline
+ * @param {Map<number, WebGLBindGroup>} bindGroups
+ */
+function retainCompatibleBindGroups(pipeline, bindGroups) {
+  for (const [index, bindGroup] of bindGroups) {
+    const expectedLayout = pipeline.layout.getBindGroupLayout(index)
+
+    if (!expectedLayout || !expectedLayout.compatibleWith(bindGroup.layout)) {
+      bindGroups.delete(index)
+    }
+  }
+}
+
+/**
  * @param {import("./renderpipeline.js").WebGLRenderPipeline} pipeline
  * @param {ReadonlyMap<number, WebGLBindGroup>} bindGroups
  */
@@ -144,6 +161,5 @@ function validateRequiredBindGroups(pipeline, bindGroups) {
     const bindGroup = bindGroups.get(i)
 
     assert(bindGroup, `Pipeline requires bind group ${i}`)
-    assertTrue(layout.compatibleWith(bindGroup.layout), `Bind group ${i} is not compatible with the active pipeline layout`)
   }
 }
