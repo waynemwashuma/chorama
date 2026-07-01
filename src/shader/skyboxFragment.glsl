@@ -5,7 +5,10 @@ precision mediump sampler2DArray;
 
 in highp vec3 v_uv;
 
-uniform float lerp;
+uniform SkyBoxBlock {
+  mat4 model;
+  float lerp;
+};
 uniform samplerCube day;
 uniform samplerCube night;
 

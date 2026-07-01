@@ -1,11 +1,18 @@
-/**@import { GPUTexture, WebGLRenderPipelineDescriptor } from '../../../core/index.js' */
+/**@import { WebGLRenderPipelineDescriptor } from '../../../core/index.js' */
 import { CompareFunction, MeshVertexLayout, Shader } from "../../../core/index.js"
-import { CullFace, PrimitiveTopology, TextureFormat } from "../../../constants/index.js"
+import { CullFace, PrimitiveTopology, TextureFormat, UniformType } from "../../../constants/index.js"
+import { Affine3 } from "../../../math/index.js"
 import { Camera, Object3D, SkyBox } from "../../../objects/index.js"
 import { RenderItem, Views } from "../../../renderer/index.js"
 import { skyboxFragment, skyboxVertex } from "../../../shader/index.js"
 import { assert } from "../../../utils/index.js"
 import { SkyboxPipeline, SkyBoxMesh } from "../resources/index.js"
+/** @import { Texture } from "../../../texture/index.js" */
+
+/** @type {WeakMap<SkyBox, import("../../../caches/uniformbuffers.js").UniformBuffer>} */
+const skyboxUniformBuffers = new WeakMap()
+
+let skyboxUniformBufferId = 0
 
 export class SkyBoxNode {
   subgraph() {
@@ -41,9 +48,12 @@ export class SkyBoxNode {
           if (!(child instanceof SkyBox)) {
             return true
           }
+
           const item = createSkyboxRenderItem(child, renderDevice, renderer)
 
-          opaqueStage.push(item)
+          if (item) {
+            opaqueStage.push(item)
+          }
 
           return true
         })
@@ -56,39 +66,49 @@ export class SkyBoxNode {
  * @param {SkyBox} object
  * @param {import("../../../core/index.js").WebGLRenderDevice} device
  * @param {import("../../../renderer/index.js").WebGLRenderer} renderer
- * @returns {RenderItem}
+ * @returns {RenderItem | undefined}
  */
 function createSkyboxRenderItem(object, device, renderer) {
   const skyboxMesh = renderer.getResource(SkyBoxMesh)
+  const skyboxPipeline = renderer.getResource(SkyboxPipeline)
 
   assert(skyboxMesh, "SkyBoxMesh resource missing")
+  assert(skyboxPipeline, "SkyboxPipeline resource missing")
+
+  const day = object.day ?? object.night
+  const night = object.night ?? object.day
+
+  if (!day || !night) {
+    return undefined
+  }
+
   const mesh = renderer.caches.getMesh(device, skyboxMesh.cube, renderer.attributes)
-  /** @type {{ lerp: number, day: GPUTexture | undefined, night: GPUTexture | undefined }} */
-  const uniforms = {
-    lerp: object.lerp,
-    day: undefined,
-    night: undefined
-  }
+  const pipelineId = getSkyboxRenderPipeline(device, renderer)
+  const pipeline = renderer.caches.getRenderPipeline(pipelineId)
+  const skyboxBlockLayout = pipeline?.uniformBlocks.get("SkyBoxBlock")
 
-  if (object.day) {
-    const dayTex = renderer.caches.getTexture(device, object.day)
+  assert(pipeline, "SkyboxPipeline resource missing")
+  assert(skyboxBlockLayout, "SkyBoxBlock uniform block missing")
+  assert(skyboxPipeline.bindGroupLayout, "SkyBox bind group layout missing")
+  assert(skyboxPipeline.pipelineLayout, "SkyBox pipeline layout missing")
 
-    uniforms.day = dayTex
-  }
-  if (object.night) {
-    const nightTex = renderer.caches.getTexture(device, object.night)
+  const bindGroup = createSkyboxBindGroup(
+    device,
+    renderer,
+    skyboxPipeline,
+    skyboxBlockLayout,
+    day,
+    night,
+    object
+  )
 
-    uniforms.night = nightTex
-  }
-  const item = new RenderItem({
-    pipelineId: getSkyboxRenderPipeline(device, renderer),
-    uniforms,
+  return new RenderItem({
+    pipelineId,
+    bindGroup,
     tag: SkyBox.name,
     transform: object.transform.world,
     mesh
   })
-
-  return item
 }
 
 /**
@@ -135,9 +155,148 @@ function getSkyboxRenderPipeline(device, renderer) {
     descriptor.fragment?.source?.includes?.set(name, value)
   }
 
-  const [_, newId] = caches.createRenderPipeline(device, descriptor)
+  const [pipeline, newId] = caches.createRenderPipeline(device, descriptor)
+  const skyboxBlockLayout = pipeline.uniformBlocks.get("SkyBoxBlock")
+
+  assert(skyboxBlockLayout, "SkyBoxBlock uniform block missing")
+
+  const bindGroupLayout = device.createBindGroupLayout({
+    label: "SkyBoxBindGroupLayout",
+    entries: [
+      {
+        binding: 0,
+        name: "SkyBoxBlock",
+        visibility: 0,
+        buffer: {
+          type: "uniform",
+          minBindingSize: skyboxBlockLayout.size
+        }
+      },
+      {
+        binding: 1,
+        name: "day",
+        visibility: 0,
+        texture: {
+          viewDimension: "cube"
+        }
+      },
+      {
+        binding: 2,
+        name: "night",
+        visibility: 0,
+        texture: {
+          viewDimension: "cube"
+        }
+      }
+    ]
+  })
+
+  skyboxPipeline.bindGroupLayout = bindGroupLayout
+  skyboxPipeline.pipelineLayout = device.createPipelineLayout({
+    label: "SkyBoxPipelineLayout",
+    bindGroupLayouts: [bindGroupLayout]
+  })
+  pipeline.layout = skyboxPipeline.pipelineLayout
 
   skyboxPipeline.pipelineId = newId
 
   return newId
+}
+
+/**
+ * @param {import("../../../core/index.js").WebGLRenderDevice} device
+ * @param {import("../../../renderer/index.js").WebGLRenderer} renderer
+ * @param {SkyboxPipeline} skyboxPipeline
+ * @param {import("../../../core/layouts/uniformbuffer.js").UniformBufferLayout} layout
+ * @param {Texture} day
+ * @param {Texture} night
+ * @param {SkyBox} object
+ */
+function createSkyboxBindGroup(device, renderer, skyboxPipeline, layout, day, night, object) {
+  const dayTexture = renderer.caches.getTexture(device, day)
+  const nightTexture = renderer.caches.getTexture(device, night)
+  const uniformBuffer = getSkyboxUniformBuffer(device, renderer, layout, object)
+  const bindGroupLayout = skyboxPipeline.bindGroupLayout
+
+  assert(bindGroupLayout, "SkyBox bind group layout missing")
+
+  uniformBuffer.update(device.context, createSkyboxUniformData(layout, object))
+
+  return device.createBindGroup({
+    label: "SkyBoxBindGroup",
+    layout: bindGroupLayout,
+    entries: [
+      {
+        binding: 0,
+        resource: {
+          buffer: uniformBuffer.buffer,
+          point: uniformBuffer.point
+        }
+      },
+      {
+        binding: 1,
+        resource: {
+          texture: dayTexture
+        }
+      },
+      {
+        binding: 2,
+        resource: {
+          texture: nightTexture
+        }
+      }
+    ]
+  })
+}
+
+/**
+ * @param {import("../../../core/index.js").WebGLRenderDevice} device
+ * @param {import("../../../renderer/index.js").WebGLRenderer} renderer
+ * @param {import("../../../core/layouts/uniformbuffer.js").UniformBufferLayout} layout
+ * @param {SkyBox} object
+ */
+function getSkyboxUniformBuffer(device, renderer, layout, object) {
+  const existing = skyboxUniformBuffers.get(object)
+
+  if (existing) {
+    return existing
+  }
+
+  const name = `SkyBoxBlock:${skyboxUniformBufferId++}`
+  const buffer = renderer.caches.uniformBuffers.set(device, name, layout)
+
+  skyboxUniformBuffers.set(object, buffer)
+  return buffer
+}
+
+/**
+ * @param {import("../../../core/layouts/uniformbuffer.js").UniformBufferLayout} layout
+ * @param {SkyBox} object
+ */
+function createSkyboxUniformData(layout, object) {
+  const data = new ArrayBuffer(layout.size)
+  const floats = new Float32Array(data)
+  const transformMatrix = /** @type {ArrayLike<number>} */ (/** @type {unknown} */ (Affine3.toMatrix4(object.transform.world)))
+  let modelWritten = false
+  let lerpWritten = false
+
+  for (const field of layout.fields.values()) {
+    const offset = field.offset / Float32Array.BYTES_PER_ELEMENT
+
+    if (field.type === UniformType.Mat4) {
+      floats.set(transformMatrix, offset)
+      modelWritten = true
+      continue
+    }
+
+    if (field.type === UniformType.Float) {
+      floats[offset] = object.lerp
+      lerpWritten = true
+    }
+  }
+
+  assert(modelWritten, "SkyBoxBlock model field missing")
+  assert(lerpWritten, "SkyBoxBlock lerp field missing")
+
+  return data
 }

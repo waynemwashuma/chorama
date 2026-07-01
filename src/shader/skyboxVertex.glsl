@@ -7,7 +7,10 @@ in vec3 position;
 uniform CameraBlock {
   Camera camera;
 };
-uniform mat4 model;
+uniform SkyBoxBlock {
+  mat4 model;
+  float lerp;
+};
 
 out highp vec3 v_uv;
   
