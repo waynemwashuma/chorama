@@ -1,5 +1,7 @@
 /** @import { GPUMesh } from "../resources/index.js" */
+/** @import { WebGLBindGroup } from "./bindgroup.js" */
 import { assert } from "../../utils/index.js"
+import { assertTrue } from "../../utils/index.js"
 
 export class WebGLRenderPassEncoder {
   /**
@@ -14,7 +16,7 @@ export class WebGLRenderPassEncoder {
   pipeline
   /**
    * @private
-   * @type {Map<number, any>}
+   * @type {Map<number, WebGLBindGroup>}
    */
   bindGroups = new Map()
 
@@ -68,9 +70,15 @@ export class WebGLRenderPassEncoder {
   /**
    * Makeshift bind-group entry point for future expansion.
    * @param {number} index
-   * @param {any} bindGroup
+   * @param {WebGLBindGroup} bindGroup
    */
   setBindGroup(index, bindGroup) {
+    assertTrue(Number.isInteger(index) && index >= 0, `Invalid bind group index ${index}`)
+
+    if (this.pipeline) {
+      validateBindGroupCompatibility(this.pipeline, index, bindGroup)
+    }
+
     this.bindGroups.set(index, bindGroup)
   }
 
@@ -79,6 +87,7 @@ export class WebGLRenderPassEncoder {
    */
   draw(mesh) {
     assert(this.pipeline, "No active pipeline set on render pass encoder")
+    validateRequiredBindGroups(this.pipeline, this.bindGroups)
 
     this.context.bindVertexArray(mesh.inner)
     if (mesh.indexType !== undefined) {
@@ -95,6 +104,7 @@ export class WebGLRenderPassEncoder {
    */
   drawArrays(count, first = 0) {
     assert(this.pipeline, "No active pipeline set on render pass encoder")
+    validateRequiredBindGroups(this.pipeline, this.bindGroups)
 
     this.context.bindVertexArray(null)
     this.context.drawArrays(this.pipeline.topology, first, count)
@@ -104,5 +114,36 @@ export class WebGLRenderPassEncoder {
     this.pipeline = undefined
     this.bindGroups.clear()
     this.context.bindVertexArray(null)
+  }
+}
+
+/**
+ * @param {import("./renderpipeline.js").WebGLRenderPipeline} pipeline
+ * @param {number} index
+ * @param {WebGLBindGroup} bindGroup
+ */
+function validateBindGroupCompatibility(pipeline, index, bindGroup) {
+  const expectedLayout = pipeline.layout.getBindGroupLayout(index)
+
+  assert(expectedLayout, `Pipeline does not declare bind group ${index}`)
+  assertTrue(expectedLayout.compatibleWith(bindGroup.layout), `Bind group ${index} is not compatible with the active pipeline layout`)
+}
+
+/**
+ * @param {import("./renderpipeline.js").WebGLRenderPipeline} pipeline
+ * @param {ReadonlyMap<number, WebGLBindGroup>} bindGroups
+ */
+function validateRequiredBindGroups(pipeline, bindGroups) {
+  for (let i = 0; i < pipeline.layout.bindGroupLayouts.length; i++) {
+    const layout = pipeline.layout.bindGroupLayouts[i]
+
+    if (!layout || layout.entries.length === 0) {
+      continue
+    }
+
+    const bindGroup = bindGroups.get(i)
+
+    assert(bindGroup, `Pipeline requires bind group ${i}`)
+    assertTrue(layout.compatibleWith(bindGroup.layout), `Bind group ${i} is not compatible with the active pipeline layout`)
   }
 }

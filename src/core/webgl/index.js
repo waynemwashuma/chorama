@@ -1,5 +1,7 @@
 export * from './descriptors.js'
 export * from './bindgroup.js'
+export { WebGLBindGroupLayout } from '../layouts/bindgroup.js'
+export { WebGLPipelineLayout } from '../layouts/pipeline.js'
 export * from './renderpipeline.js'
 export * from './renderpassencoder.js'
 export * from './webglrenderdevice.js'
