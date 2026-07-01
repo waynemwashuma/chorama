@@ -4,8 +4,8 @@ export class UniformBufferLayout {
   size
   /**
    * @param {string} name
-   * @param {any} size
-   * @param {Map<string, {name:string,size:string}>} fields
+   * @param {number} size
+   * @param {Map<string, UniformBufferField>} fields
    */
   constructor(name, size, fields) {
     this.name = name
@@ -13,3 +13,11 @@ export class UniformBufferLayout {
     this.fields = fields
   }
 }
+
+/**
+ * @typedef UniformBufferField
+ * @property {number} type
+ * @property {number} size
+ * @property {number} offset
+ * @property {number} stride
+ */
