@@ -1,16 +1,14 @@
 /**@import { WebGLRenderPipelineDescriptor } from '../core/index.js' */
 /**@import { WebGLAtttributeParams } from '../function.js' */
 
-import { CanvasTarget, ImageRenderTarget, RenderTarget } from "../rendertarget/index.js"
 import { Texture } from "../texture/index.js"
 import { Attribute, Mesh } from "../mesh/index.js"
-import { FrameBuffer, GPUMesh, GPUTexture, MeshVertexLayout, WebGLRenderDevice, WebGLRenderPipeline } from "../core/index.js"
+import { GPUMesh, GPUTexture, MeshVertexLayout, WebGLRenderDevice, WebGLRenderPipeline } from "../core/index.js"
 import { UniformBuffers } from "./uniformbuffers.js"
 import { BufferType, BufferUsage } from "../constants/others.js"
-import { getFramebufferAttachment, mapToIndicesType, mapVertexFormatToWebGL } from "../function.js"
+import { mapToIndicesType, mapVertexFormatToWebGL } from "../function.js"
 import { assert } from "../utils/index.js"
 import { getVertexFormatComponentNumber, getVertexFormatComponentSize } from "../constants/mesh.js"
-import { TextureType } from "../constants/texture.js"
 
 export class Caches {
   uniformBuffers = new UniformBuffers()
@@ -28,91 +26,9 @@ export class Caches {
   renderpipelines = []
 
   /**
-   * @type {Map<RenderTarget, FrameBuffer>}
-   */
-  renderTargets = new Map()
-
-  /**
    * @type {MeshVertexLayout[]}
    */
   meshLayouts = []
-
-  /**
-   * @param {WebGLRenderDevice} device
-   * @param {RenderTarget} target
-   * @returns {FrameBuffer}
-   */
-  getFrameBuffer(device, target) {
-    const current = this.renderTargets.get(target)
-    if (current) {
-      if (!renderTargetChanged(device, this, target, current)) {
-        return current
-      }
-      if (target instanceof CanvasTarget) {
-        current.width = target.width
-        current.height = target.height
-        return current
-      }
-    }
-
-    // Flush out any change detection that happened when the target was created
-    target.changed()
-
-    if (target instanceof ImageRenderTarget) {
-      const framebuffer = device.context.createFramebuffer()
-      const colorAttachments = []
-      const drawBuffers = target.color.map((texture, offset) => {
-        if (texture) {
-          return WebGL2RenderingContext.COLOR_ATTACHMENT0 + offset
-        }
-        return WebGL2RenderingContext.NONE
-      })
-      let depthBuffer
-
-      device.context.bindFramebuffer(WebGL2RenderingContext.FRAMEBUFFER, framebuffer)
-
-      for (let i = 0; i < target.color.length; i++) {
-        const color = /**@type {Texture}*/ (target.color[i])
-        const texture = this.getTexture(device, color)
-        bindTextureToAttachment(device, texture, i, target.layer)
-        colorAttachments[i] = texture
-      }
-
-      if (target.depthTexture) {
-        const texture = this.getTexture(device, target.depthTexture)
-
-        bindTextureToAttachment(device, texture, 0, target.layer)
-        depthBuffer = texture
-      }
-
-      const newTarget = new FrameBuffer(
-        framebuffer,
-        colorAttachments,
-        drawBuffers,
-        depthBuffer,
-        target.width,
-        target.height
-      )
-
-      // TODO: Dispose off the previous frame buffers
-      this.renderTargets.set(target, newTarget)
-      return newTarget
-    } else if (target instanceof CanvasTarget) {
-      const frameBuffer = new FrameBuffer(
-        null,
-        [],
-        [WebGL2RenderingContext.BACK],
-        undefined,
-        target.width,
-        target.height
-      )
-
-      this.renderTargets.set(target, frameBuffer)
-      return frameBuffer
-    } else {
-      throw 'Unsupported render target'
-    }
-  }
 
   /**
    * @param {WebGLRenderDevice} device
@@ -344,77 +260,4 @@ function setVertexAttribute(context, index, params, stride = 0, offset = 0) {
     default:
       throw new Error(`Unsupported GlDataType: ${type.toString()}`);
   }
-}
-
-/**
- * @param {WebGLRenderDevice} device
- * @param {GPUTexture} gpuTexture
- * @param {number} offset
- * @param {number} layer
- */
-function bindTextureToAttachment(device, gpuTexture, offset, layer) {
-  const attachment = getFramebufferAttachment(gpuTexture.actualFormat) + offset
-  switch (gpuTexture.type) {
-    case TextureType.Texture2D:
-      device.context.framebufferTexture2D(
-        WebGL2RenderingContext.FRAMEBUFFER,
-        attachment,
-        WebGL2RenderingContext.TEXTURE_2D,
-        gpuTexture.inner,
-        0
-      )
-      break;
-    case TextureType.Texture2DArray:
-      device.context.framebufferTextureLayer(
-        WebGL2RenderingContext.FRAMEBUFFER,
-        attachment,
-        gpuTexture.inner,
-        0,
-        layer
-      )
-      break;
-    default:
-      break;
-  }
-}
-
-/**
- * @param {WebGLRenderDevice} device
- * @param {Caches} caches
- * @param {RenderTarget} target
- * @param {FrameBuffer} frameBuffer
- */
-function renderTargetChanged(device, caches, target, frameBuffer) {
-  if (target instanceof ImageRenderTarget) {
-    const colorLength = Math.max(target.color.length, frameBuffer.colorAttachments.length)
-    for (let i = 0; i < colorLength; i++) {
-      const texture = target.color[i]
-      const attachment = frameBuffer.colorAttachments[i]
-      if (texture) {
-        const current = caches.getTexture(device, texture)
-
-        if (current !== attachment) {
-          return true
-        }
-      } else {
-        if (attachment) {
-          return true
-        }
-      }
-    }
-
-    if (target.depthTexture) {
-      const current = caches.getTexture(device, target.depthTexture)
-
-      if (current !== frameBuffer.depthBuffer) {
-        return true
-      }
-    } else {
-      if (frameBuffer.depthBuffer && !target.depth) {
-        return true
-      }
-    }
-  }
-
-  return target.changed()
 }
