@@ -6,43 +6,9 @@ import { BlendParams, GPUTexture } from "../resources/index.js";
 import { Shader } from "../shader.js";
 
 /**
- * @typedef WebGLBindGroupLayoutDescriptor
- * @property {string} [label]
- * @property {WebGLBindGroupLayoutEntry[]} entries
- */
-
-/**
- * @typedef WebGLBindGroupLayoutEntry
- * @property {number} binding
- * @property {number} visibility
- * @property {WebGLBufferBindingLayout} [buffer]
- * @property {WebGLSamplerBindingLayout} [sampler]
- * @property {WebGLTextureBindingLayout} [texture]
- */
-
-/**
- * @typedef WebGLBufferBindingLayout
- * @property {"uniform"} [type]
- * @property {boolean} [hasDynamicOffset]
- * @property {number} [minBindingSize]
- */
-
-/**
- * @typedef WebGLSamplerBindingLayout
- * @property {"filtering" | "non-filtering" | "comparison"} [type]
- */
-
-/**
- * @typedef WebGLTextureBindingLayout
- * @property {"float" | "unfilterable-float" | "depth" | "sint" | "uint"} [sampleType]
- * @property {"1d" | "2d" | "2d-array" | "cube" | "cube-array" | "3d"} [viewDimension]
- * @property {boolean} [multisampled]
- */
-
-/**
  * @typedef WebGLBindGroupDescriptor
  * @property {string} [label]
- * @property {import("./bindgroup.js").WebGLBindGroupLayout} layout
+ * @property {import("../layouts/bindgroup.js").WebGLBindGroupLayout} layout
  * @property {WebGLBindGroupEntry[]} entries
  */
 
@@ -80,6 +46,7 @@ import { Shader } from "../shader.js";
 
 /**
  * @typedef WebGLRenderPipelineDescriptor
+ * @property {import("../layouts/index.js").WebGLPipelineLayout} [layout]
  * @property {Shader} vertex
  * @property {{ source: Shader, targets:RenderTargetDescriptor[]}} [fragment]
  * @property {MeshVertexLayout} vertexLayout
