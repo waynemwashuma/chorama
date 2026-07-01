@@ -1,10 +1,10 @@
 import { Camera, Object3D } from "../../../objects/index.js"
 import { View, Views } from "../../../renderer/index.js"
-import { CanvasTarget, ImageRenderTarget } from "../../../rendertarget"
+import { CanvasTarget, ImageRenderTarget } from "../../../rendertarget/index.js"
 import { Vector3 } from "../../../math/index.js"
 import { assert } from "../../../utils/index.js"
 import { Texture2DPool } from "../RenderTarget2DPool.js"
-import { TextureFormat } from "../../../constants"
+import { TextureFormat } from "../../../constants/index.js"
 
 export class CameraViewNode {
   subgraph() {

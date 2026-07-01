@@ -1,3 +1,3 @@
-export * from './shadow.js'
-export * from './shadowOccluder.js'
-export * from './shadowOpaquePass.js'
+export * from './view.js'
+export * from './occluder.js'
+export * from './opaquePass.js'
