@@ -14,7 +14,6 @@ function renderItems(view, device, renderer) {
 
   const context = device.context
   const caches = renderer.caches
-  const uniformBinders = renderer.uniformBinders
   const { clearColor, clearDepth, clearStencil, viewport, scissor } = renderTarget
 
   const framebuffer = caches.getFrameBuffer(device, renderTarget)
@@ -28,14 +27,13 @@ function renderItems(view, device, renderer) {
   const pass = device.beginRenderPass()
   for (let i = 0; i < opaquePhase.length; i++) {
     // SAFETY: List is dense
-    const { pipelineId, tag, mesh, uniforms, bindGroup, transform } = /**@type {RenderItem}*/(opaquePhase[i])
+    const { pipelineId, mesh, bindGroup, transform } = /**@type {RenderItem}*/(opaquePhase[i])
     const pipeline = caches.getRenderPipeline(pipelineId)
 
     if (!pipeline) {
       continue
     }
 
-    const uniformBinder = uniformBinders.get(tag)
     const modelInfo = pipeline.uniforms.get("model")
     const transformMatrix = Affine3.toMatrix4(transform)
 
@@ -47,10 +45,6 @@ function renderItems(view, device, renderer) {
 
     if (bindGroup) {
       pass.setBindGroup(0, bindGroup)
-    }
-
-    if (uniformBinder) {
-      uniformBinder(device, renderer, pipeline, uniforms, transformMatrix)
     }
     pass.draw(mesh)
   }

@@ -87,7 +87,6 @@ export function createMeshMaterialRenderItem(object, device, renderer, pipelines
   const pipeline = caches.getRenderPipeline(pipelineId)
   const bindGroup = pipeline ? createMaterialBindGroup(device, renderer, pipeline, material, object) : undefined
   const item = new RenderItem({
-    uniforms: {},
     bindGroup,
     mesh: gpuMesh,
     pipelineId,

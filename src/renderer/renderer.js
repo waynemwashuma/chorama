@@ -1,4 +1,3 @@
-/** @import { UniformBinder } from "./core/index.js" */
 import { WebGLDeviceLimits, WebGLRenderDevice } from "../core/index.js"
 import { Object3D } from "../objects/index.js"
 import { colorShaderLib, commonShaderLib, lightShaderLib, mathShaderLib } from "../shader/index.js"
@@ -57,11 +56,6 @@ export class WebGLRenderer {
    * @type {readonly Plugin[]} 
    */
   plugins
-
-  /**
-   * @type {Map<string, UniformBinder>}
-   */
-  uniformBinders = new Map()
 
   /**
    * @readonly

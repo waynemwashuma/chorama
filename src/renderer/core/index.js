@@ -115,11 +115,6 @@ export class RenderItem {
   mesh
 
   /**
-   * @type {Record<string, any>}
-   */
-  uniforms
-
-  /**
    * @type {import("../../core/index.js").WebGLBindGroup | undefined}
    */
   bindGroup
@@ -141,7 +136,6 @@ export class RenderItem {
     pipelineId,
     mesh,
     tag,
-    uniforms,
     bindGroup,
     transform
   }) {
@@ -149,7 +143,6 @@ export class RenderItem {
     this.transform = transform
     this.mesh = mesh
     this.tag = tag
-    this.uniforms = uniforms
     this.bindGroup = bindGroup
   }
 }
@@ -172,16 +165,6 @@ export class RenderItem {
  * @property {Affine3} transform
  * @property {GPUMesh} mesh
  * @property {number} pipelineId
- * @property {Record<string, any>} uniforms
  * @property {import("../../core/index.js").WebGLBindGroup} [bindGroup]
  * @property {string} tag
- */
-
-/**
- * @callback UniformBinder
- * @param {import("../../core/index.js").WebGLRenderDevice} device
- * @param {import("../renderer.js").WebGLRenderer} renderer
- * @param {import("../../core/index.js").WebGLRenderPipeline} pipeline
- * @param {any} bindGroup
- * @param {Matrix4} transform
  */

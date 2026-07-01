@@ -51,7 +51,6 @@ export class ShadowOccluderNode {
                         pipelineId: getRenderPipelineId(renderDevice, renderer, gpuMesh, shadowPipelines),
                         transform: child.transform.world,
                         mesh: gpuMesh,
-                        uniforms: {},
                         tag: ""
                     })
 
