@@ -1,13 +1,13 @@
 /**@import { WebGLRenderDevice } from "../../../core/index.js" */
 import { ACESFilmicTonemapping, AgXTonemapping, Camera, KhronosPBRNeutralTonemapping, ReinhardToneMapping } from "../../../objects/index.js"
 import { View, Views } from "../../../renderer/index.js"
-import { CanvasTarget, ImageRenderTarget } from "../../../rendertarget/index.js"
+import { CanvasTarget } from "../../../rendertarget/index.js"
 import { CompareFunction, MeshVertexLayout, Shader } from "../../../core/index.js"
 import { CullFace, PrimitiveTopology, TextureFormat } from "../../../constants/index.js"
 import { assert } from "../../../utils/index.js"
 import { fullscreenVertex, tonemappingFragment } from "../../../shader/index.js"
 import { Texture2DPool } from "../RenderTarget2DPool.js"
-import { TonemappingPipeline } from "../resources/index.js"
+import { CameraColorTargets, TonemappingPipeline } from "../resources/index.js"
 
 export class TonemappingNode {
   subgraph() {
@@ -22,10 +22,12 @@ export class TonemappingNode {
     const views = renderer.getResource(Views)
     const targetPool = renderer.getResource(Texture2DPool)
     const pipelineState = renderer.getResource(TonemappingPipeline)
+    const colorTargets = renderer.getResource(CameraColorTargets)
 
     assert(views, "Views resource missing")
     assert(targetPool, "Render target pool resource missing")
     assert(pipelineState, "TonemappingPipeline resource missing")
+    assert(colorTargets, "Camera color targets resource missing")
 
     const actualViews = views.items()
 
@@ -36,12 +38,16 @@ export class TonemappingNode {
         continue
       }
 
-      if (!(view.object.target instanceof CanvasTarget) || !(view.renderTarget instanceof ImageRenderTarget)) {
+      if (!(view.object.target instanceof CanvasTarget)) {
         continue
       }
 
-      const inputTarget = view.renderTarget
-      const colorSource = inputTarget.color[0]
+      /** @type {import("../resources/index.js").CameraColorTarget | undefined} */
+      const cameraColorTarget = colorTargets.get(view.object)
+
+      assert(cameraColorTarget, "Camera color target missing")
+
+      const colorSource = cameraColorTarget.target
       const toneMapping = view.object.toneMapping
 
       if (!colorSource) {
@@ -59,38 +65,22 @@ export class TonemappingNode {
       }
 
       const outputColor = targetPool.get({
-        width: inputTarget.width,
-        height: inputTarget.height,
+        width: view.object.target.canvas.width,
+        height: view.object.target.canvas.height,
         format: TextureFormat.RGBA8Unorm
       })
-      const outputTarget = new ImageRenderTarget({
-        width: inputTarget.width,
-        height: inputTarget.height,
-        depth: inputTarget.depth,
-        color: [outputColor]
-      })
-
-      outputTarget.viewport.offset.set(0, 0)
-      outputTarget.viewport.size.set(1, 1)
-      outputTarget.scissor = undefined
 
       const source = renderer.caches.getTexture(renderDevice, colorSource)
-      const outputColorTexture = /** @type {import("../../../texture/index.js").Texture | undefined} */ (outputTarget.color[0])
-
-      assert(outputColorTexture, "Tonemapping output target is missing color texture")
-      outputTarget.changed()
 
       const pass = renderDevice.beginRenderPass({
-        width: outputTarget.width,
-        height: outputTarget.height,
+        width: outputColor.width,
+        height: outputColor.height,
         colorAttachments: [{
-          texture: renderer.caches.getTexture(renderDevice, outputColorTexture),
-          layer: outputTarget.layer,
+          texture: renderer.caches.getTexture(renderDevice, outputColor),
+          layer: 0,
           loadOp: "load",
           storeOp: "store"
-        }],
-        viewport: outputTarget.viewport,
-        scissor: outputTarget.scissor || outputTarget.viewport
+        }]
       })
 
       pass.setPipeline(pipeline)
@@ -104,17 +94,7 @@ export class TonemappingNode {
       pass.draw(3)
       pass.end()
 
-      view.renderTarget = outputTarget
-      for (let i = 0; i < inputTarget.color.length; i++) {
-        const texture = inputTarget.color[i]
-        if (texture) {
-          targetPool.recycle(texture)
-        }
-      }
-
-      if (inputTarget.depthTexture) {
-        targetPool.recycle(inputTarget.depthTexture)
-      }
+      cameraColorTarget.setColor(targetPool, outputColor, 0, false)
     }
   }
 }

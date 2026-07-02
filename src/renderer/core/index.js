@@ -13,7 +13,7 @@ export class View {
    */
   order = 0
   /**
-   * @type {RenderTarget}
+   * @type {RenderTarget | undefined}
    */
   renderTarget
 
@@ -149,7 +149,7 @@ export class RenderItem {
 
 /**
  * @typedef ViewOptions
- * @property {RenderTarget} renderTarget
+ * @property {RenderTarget} [renderTarget]
  * @property {Vector3} position
  * @property {Matrix4} projection
  * @property {Matrix4} view

@@ -2,62 +2,75 @@ import { Camera } from "../../../objects/index.js"
 import { RenderItem, Views } from "../../../renderer/index.js"
 import { assert } from "../../../utils/index.js"
 import { Affine3 } from "../../../math/index.js"
-import { ImageRenderTarget } from "../../../rendertarget/index.js"
+import { CanvasTarget } from "../../../rendertarget/index.js"
 import { hasDepthComponent, hasStencilComponent } from "../../../constants/index.js"
+import { CameraColorTargets } from "../resources/index.js"
 
 /**
  * @param {import("../../../renderer/index.js").View} view
  * @param {import("../../../core/index.js").WebGLRenderDevice} device
  * @param {import("../../../renderer/renderer.js").WebGLRenderer} renderer
+ * @param {CameraColorTargets} colorTargets
  */
-function renderItems(view, device, renderer) {
-  const { renderStage, renderTarget } = view
+function renderItems(view, device, renderer, colorTargets) {
+  const { renderStage } = view
   const opaquePhase = renderStage.opaque
 
   const context = device.context
   const caches = renderer.caches
 
-  if (!(renderTarget instanceof ImageRenderTarget)) {
-    throw "Camera opaque pass expects an image render target"
+  if (!(view.object instanceof Camera)) {
+    throw "Camera opaque pass expects a camera view"
   }
 
-  const imageTarget = renderTarget
+  const camera = view.object
+  const cameraColorTarget = colorTargets.get(camera)
 
-  imageTarget.changed()
+  assert(cameraColorTarget, "Camera color target missing")
 
-  const clearColor = imageTarget.clearColor
+  const colorTarget = cameraColorTarget.target
+
+  if (!colorTarget) {
+    return
+  }
+
+  camera.target.changed()
+
+  const width = camera.target instanceof CanvasTarget ? camera.target.canvas.width : camera.target.width
+  const height = camera.target instanceof CanvasTarget ? camera.target.canvas.height : camera.target.height
+  const clearColor = camera.target.clearColor
   const clearValue = clearColor ? /** @type {const} */ ([clearColor.r, clearColor.g, clearColor.b, clearColor.a]) : undefined
-  const depthTexture = imageTarget.depthTexture ? caches.getTexture(device, imageTarget.depthTexture) : undefined
+  const depthTexture = cameraColorTarget.depthTexture ? caches.getTexture(device, cameraColorTarget.depthTexture) : undefined
   const depthStencilAttachment = depthTexture ? /** @type {import("../../../core/index.js").WebGLRenderPassDepthStencilAttachment} */ ({
     texture: depthTexture,
-    layer: imageTarget.layer
+    layer: cameraColorTarget.layer
   }) : undefined
 
   if (depthTexture && depthStencilAttachment && hasDepthComponent(depthTexture.actualFormat)) {
-    depthStencilAttachment.depthLoadOp = imageTarget.clearDepth !== undefined ? "clear" : "load"
+    depthStencilAttachment.depthLoadOp = camera.target.clearDepth !== undefined ? "clear" : "load"
     depthStencilAttachment.depthStoreOp = "store"
-    depthStencilAttachment.depthClearValue = imageTarget.clearDepth
+    depthStencilAttachment.depthClearValue = camera.target.clearDepth
   }
 
   if (depthTexture && depthStencilAttachment && hasStencilComponent(depthTexture.actualFormat)) {
-    depthStencilAttachment.stencilLoadOp = imageTarget.clearStencil !== undefined ? "clear" : "load"
+    depthStencilAttachment.stencilLoadOp = camera.target.clearStencil !== undefined ? "clear" : "load"
     depthStencilAttachment.stencilStoreOp = "store"
-    depthStencilAttachment.stencilClearValue = imageTarget.clearStencil
+    depthStencilAttachment.stencilClearValue = camera.target.clearStencil
   }
 
   const pass = device.beginRenderPass({
-    width: imageTarget.width,
-    height: imageTarget.height,
-    colorAttachments: imageTarget.color.map((texture) => texture ? {
-      texture: caches.getTexture(device, texture),
-      layer: imageTarget.layer,
-      loadOp: /** @type {import("../../../core/index.js").WebGLLoadOp} */ (clearValue ? "clear" : "load"),
-      storeOp: /** @type {import("../../../core/index.js").WebGLStoreOp} */ ("store"),
+    width,
+    height,
+    colorAttachments: [{
+      texture: caches.getTexture(device, colorTarget),
+      layer: cameraColorTarget.layer,
+      loadOp: clearValue ? "clear" : "load",
+      storeOp: "store",
       clearValue
-    } : null),
+    }],
     depthStencilAttachment,
-    viewport: imageTarget.viewport,
-    scissor: imageTarget.scissor || imageTarget.viewport
+    viewport: camera.target.viewport,
+    scissor: camera.target.scissor || camera.target.viewport
   })
 
   if (!opaquePhase) {
@@ -102,8 +115,10 @@ export class CameraOpaquePassNode {
   execute(context) {
     const { renderer, renderDevice } = context
     const views = renderer.getResource(Views)
+    const colorTargets = renderer.getResource(CameraColorTargets)
 
     assert(views, "Views resource missing")
+    assert(colorTargets, "Camera color targets resource missing")
 
     for (const view of views.items()) {
       if (view.tag !== Camera.name) {
@@ -111,7 +126,7 @@ export class CameraOpaquePassNode {
       }
 
       renderer.updateUBO(renderDevice.context, view.getData())
-      renderItems(view, renderDevice, renderer)
+      renderItems(view, renderDevice, renderer, colorTargets)
     }
   }
 }

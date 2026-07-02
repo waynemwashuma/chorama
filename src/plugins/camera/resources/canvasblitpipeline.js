@@ -1,6 +1,6 @@
 export class CanvasBlitPipeline {
   /**
-   * @type {number | undefined}
+   * @type {Map<number, number>}
    */
-  pipelineId
+  pipelineIds = new Map()
 }
