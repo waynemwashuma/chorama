@@ -15,6 +15,29 @@ vec3 aces_filmic_tonemapping(vec3 color, float exposure) {
   );
 }
 
+vec3 hable_curve(vec3 color) {
+  const float A = 0.15;
+  const float B = 0.50;
+  const float C = 0.10;
+  const float D = 0.20;
+  const float E = 0.02;
+  const float F = 0.30;
+
+  return (
+    (color * (A * color + C * B) + D * E) /
+    (color * (A * color + B) + D * F)
+  ) - E / F;
+}
+
+vec3 hable_tonemapping(vec3 color, float exposure) {
+  const float white_point = 11.2;
+
+  vec3 exposed_color = color * exposure;
+  float white_scale = 1.0 / hable_curve(vec3(white_point)).r;
+
+  return clamp(hable_curve(exposed_color) * white_scale, 0.0, 1.0);
+}
+
 vec3 agx_default_contrast_approx(vec3 color) {
   vec3 color_squared = color * color;
   vec3 color_quad = color_squared * color_squared;

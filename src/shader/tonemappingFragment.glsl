@@ -17,6 +17,10 @@ void main() {
     vec3 mapped_color = source_color.rgb;
     mapped_color = reinhard_tonemapping(mapped_color, exposure);
     fragment_color = vec4(quick_linear_to_sRGB(mapped_color), source_color.a);
+  #elif defined(HABLE_TONEMAP)
+    vec3 mapped_color = source_color.rgb;
+    mapped_color = hable_tonemapping(mapped_color, exposure);
+    fragment_color = vec4(quick_linear_to_sRGB(mapped_color), source_color.a);
   #elif defined(ACES_FILMIC_TONEMAP)
     vec3 mapped_color = source_color.rgb;
     mapped_color = aces_filmic_tonemapping(mapped_color, exposure);

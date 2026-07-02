@@ -9,6 +9,7 @@ import {
   CanvasTarget,
   DirectionalLight,
   GLTFLoader,
+  HableTonemapping,
   KhronosPBRNeutralTonemapping,
   LightPlugin,
   MeshMaterialPlugin,
@@ -78,6 +79,7 @@ directionalLight.transform.orientation
 const toneMappingOptions = {
   None: "none",
   Reinhard: "reinhard",
+  Hable: "hable",
   "ACES Filmic": "aces_filmic",
   AgX: "agx",
   "Khronos PBR Neutral": "khronos_pbr_neutral",
@@ -157,6 +159,9 @@ function applyToneMapping() {
   switch (settings.toneMapping) {
     case toneMappingOptions.None:
       camera.toneMapping = undefined
+      break
+    case toneMappingOptions.Hable:
+      camera.toneMapping = new HableTonemapping({ exposure: settings.exposure })
       break
     case toneMappingOptions["ACES Filmic"]:
       camera.toneMapping = new ACESFilmicTonemapping({ exposure: settings.exposure })

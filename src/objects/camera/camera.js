@@ -45,6 +45,22 @@ export class AgXTonemapping {
 	}
 }
 
+export class HableTonemapping {
+	/**
+	 * @type {number}
+	 */
+	exposure
+
+	/**
+	 * @param {HableTonemappingOptions} [options]
+	 */
+	constructor({ exposure = 1 } = {}) {
+		this.exposure = exposure
+	}
+}
+
+export { HableTonemapping as HableToneMapping }
+
 export class KhronosPBRNeutralTonemapping {
 	/**
 	 * @type {number}
@@ -75,7 +91,7 @@ export class Camera extends Object3D {
 
 	/**
 	 * Undefined means no camera tone mapping.
-	 * @type {ReinhardToneMapping | ACESFilmicTonemapping | AgXTonemapping | KhronosPBRNeutralTonemapping | undefined}
+	 * @type {ReinhardToneMapping | ACESFilmicTonemapping | AgXTonemapping | HableTonemapping | KhronosPBRNeutralTonemapping | undefined}
 	 */
 	toneMapping = new ReinhardToneMapping()
 
@@ -129,6 +145,11 @@ export class Camera extends Object3D {
 
 /**
  * @typedef AgXTonemappingOptions
+ * @property {number} [exposure]
+ */
+
+/**
+ * @typedef HableTonemappingOptions
  * @property {number} [exposure]
  */
 
